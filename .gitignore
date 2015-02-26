@@ -10,3 +10,5 @@ src/.deps/
 src/Makefile
 src/cscope
 stamp-h1
+src/egrep.c
+src/fscanner.c
