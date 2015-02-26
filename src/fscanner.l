@@ -103,6 +103,7 @@ static	int 	ident_start;		/* begin of preceding identifier */
 static	int	eat_incomplete;  /* for incomplete declarations of e/s/u */
 static  BOOL one_shot_not_global_flag;  /* resets to false after one usage */
 static  BOOL one_shot_typedef;  /* only one typedef new identifier after one typedef keyword, unless e/s/u */
+static  BOOL mib_was_in_dquote;  /* used for .mib files only (.if,.else,.endif blocks inside comments) */
 
 #define MAX_ESU_IDENT_LEN 255
 char stored_esu_ident[MAX_ESU_IDENT_LEN+1];  //max length of e/s/u identifier
@@ -213,7 +214,33 @@ mib_comment "--"[^\n]*\n
 
 <MIB>{
 
-^{ws}*{mib_identifier}{ws}*(::=)?{ws}*{mib_global_type}  {
+^IMPORTS{ws}*(::=)?{wsnl}*{mib_global_type} {
+    /* skip this MIB keyword */
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB IMPORTS statement\n");
+#endif
+    //yy_set_bol(0);
+    while (first < my_yyleng && (my_yytext[first] == '\n'))
+    {
+        ++myylineno;
+        lineno = myylineno;
+        first++;
+    }
+    ++myylineno;
+    lineno = myylineno;
+    goto more; 
+}
+
+^.else {
+    if (mib_was_in_dquote == YES)
+    {
+        mib_was_in_dquote = NO;
+        BEGIN(MIB_IN_DQUOTE);
+    }
+    goto more;
+}
+
+^{ws}*{mib_identifier}{ws}*(::=)?{wsnl}*{mib_global_type}  {
 #ifdef DEBUG_LOGS
     printf("!!!!MIB GLOBAL TYPE\n");
 #endif
@@ -324,20 +351,22 @@ mib_comment "--"[^\n]*\n
     goto more;
 }
 
-^.if{ws}*\({ws}*{mib_identifier}{ws}*\) {
+^.if{ws}*\({ws}*{mib_identifier}{ws}*(=={ws}*0)?{ws}*\) {
     yyless(0);
     yy_set_bol(0);
-    BEGIN(MIB);
+    mib_was_in_dquote = YES;
+    //BEGIN(MIB);
     goto more;
 }
 
 ^.else {
-    BEGIN(MIB);
+    //BEGIN(MIB);
     goto more;
 }
 
 ^.endif {
-    BEGIN(MIB);
+    mib_was_in_dquote = NO;
+    //BEGIN(MIB);
     goto more;
 }
 
@@ -828,7 +857,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 		}
 
 <WAS_IDENTIFIER>{       
-{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|[*;[\],]|{wsnl})*[:a-zA-Z_#{]))	{
+{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))	{
 /*{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]    {*/
 			/* a function definition */
 			/* note: "#define a (b) {" and "#if defined(a)\n#" 
@@ -1259,6 +1288,7 @@ initscanner(char *srcfile)
         case 'm':
             if (strcmp(s, "mib") == 0) {	/* mib */
                 mib = YES;
+                mib_was_in_dquote = NO;
                 BEGIN(MIB);
             }
             break;
