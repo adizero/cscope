@@ -95,6 +95,8 @@ static	int	templateparens;		/* function template outer parentheses count */
 static	int	typedefbraces = -1;	/* initial typedef brace count */
 static	int	token;			/* token found */
 static	int 	ident_start;		/* begin of preceding identifier */
+static	int	eat_incomplete;  /* for incomplete declarations of e/s/u */
+static  BOOL one_shot_not_global_flag;  /* resets to false after one usage */
 
 /* If this is defined to 1, use flex rules rather than the input
  * function to discard comments. The scanner gains quite a bit of
@@ -209,7 +211,9 @@ wsnl		[ \t\r\v\f\n]|{comment}
 		}
 
 \{		{	/* count unmatched left braces for fcn def detection */
-			++braces;
+            if (ppdefine == NO) {
+				++braces;
+			}
 			
 			/* mark an untagged enum/struct/union so its beginning
 			   can be found */
@@ -362,7 +366,10 @@ wsnl		[ \t\r\v\f\n]|{comment}
 				initializerbraces = -1;
 				initializer = NO;
 			}
-			if (--braces <= 0) {
+			if (ppdefine == NO) {
+				--braces;
+			}
+			if (braces <= 0) {
 		endstate:
 				braces = 0;
 				classdef = NO;
@@ -493,9 +500,22 @@ class{wsnl}+{identifier}({wsnl}|{identifier}|[():])*\{	{	/* class definition */
 			/* NOTREACHED */
 		}
 
-("enum"|"struct"|"union")	{
+("enum")	{
 			ident_start = first;
 			BEGIN(WAS_ESU);
+			eat_incomplete=4;
+			goto more;
+		}
+("struct")	{
+			ident_start = first;
+			BEGIN(WAS_ESU);
+			eat_incomplete=6;
+			goto more;
+		}
+("union")	{
+			ident_start = first;
+			BEGIN(WAS_ESU);
+			eat_incomplete=5;
 			goto more;
 		}
 <WAS_ESU>{
@@ -515,6 +535,86 @@ class{wsnl}+{identifier}({wsnl}|{identifier}|[():])*\{	{	/* class definition */
 			tagdef = '\0';
 			goto more;
 		}
+({wsnl}+{identifier}){wsnl}*;	{
+			/*
+			BEGIN(INITIAL);
+			esudef = NO;
+			yyless(eat_incomplete);
+			yy_set_bol(0);
+			tagdef = '\0';
+			*/
+
+			/*MY_YYMORE();*/
+			/*last = strlen(my_yytext) - 1;*/
+
+			/*printf("HERE first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);*/
+	
+			token=IDENT;
+			one_shot_not_global_flag = YES;
+
+			yyless(0);
+			yy_set_bol(0);
+			BEGIN(INITIAL);
+			goto more;
+			
+			/*
+			my_yymore();
+			last = my_yyleng;
+
+			printf("XXX first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);
+
+			esudef = NO;
+			token = IDENT;
+			tagdef = '\0';
+			BEGIN(INITIAL);
+			printf("HEREALL token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);
+			return token;
+			*/
+
+			/*goto definition;*/
+
+			/*
+			BEGIN(INITIAL);
+			goto more;
+			*/
+			/*
+			BEGIN(WAS_IDENTIFIER);
+			goto ident;
+			*/
+
+			/*BEGIN(WAS_IDENTIFIER);
+			tagdef = '\0';
+			goto more;*/
+
+			/*
+			BEGIN(WAS_IDENTIFIER);
+			token = IDENT;
+			if (YYSTATE == WAS_IDENTIFIER) {
+			last = first; 
+			first = ident_start;
+			yyless(0);
+			yy_set_bol(0);
+			BEGIN(INITIAL);
+			}
+
+			if (braces == 0) {
+				esudef = NO;
+			}
+			if (braces == typedefbraces) {
+				typedefbraces = -1;
+			}
+			if (braces == externalbraces) {
+				externalbraces = -1;
+				external = NO;
+			}
+			structfield = NO;
+			initializer = NO;
+			goto more;
+			*/
+
+			/* NOTREACHED */
+		}
+
 ({wsnl}+{identifier})?{wsnl}* 	|   
 .|\n										{   /* e/s/u usage */
 			BEGIN(WAS_IDENTIFIER);
@@ -536,7 +636,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 		}
 
 <WAS_IDENTIFIER>{       
-{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:])*\)([()]|{wsnl})*[:a-zA-Z_#{]	{
+{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]	{
 			/* a function definition */
 			/* note: "#define a (b) {" and "#if defined(a)\n#" 
 			 * are not fcn definitions! */
@@ -586,7 +686,14 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 					/* if enum/struct/union */
 					token = MEMBERDEF;
 				} else {
-					token = GLOBALDEF;
+					if (one_shot_not_global_flag == NO)
+					{
+						token = GLOBALDEF;
+					}
+					else
+					{
+						one_shot_not_global_flag = NO;
+					}
 				}
 			} else {
 		ident:
@@ -668,9 +775,11 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 				if (tagdef && strnotequal(my_yytext + first, "class")) {
 					token = tagdef;
 					tagdef = '\0';
+					/*printf("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
 					if (braces == 0) {
 						esudef = YES;
 					}
+					/*printf("HERE3 esudef: %d\n", esudef);*/
 				} else if (braces == typedefbraces && oldtype == NO &&
 				           arraydimension == NO) {
 					/* if a typedef name */
@@ -678,6 +787,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 				} else {
 					oldtype = NO;
 				}
+				/*printf("HERE2ALL token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
 				/* my_yymore(); */
 				return(token);
 				/* NOTREACHED */
@@ -793,7 +903,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 	
 ^{ws}+		{		/* don't save leading white space */
 		}
-		
+
 {ws}+\n 	{		/* eat whitespace at end of line */
 			unput('\n');
 		}
