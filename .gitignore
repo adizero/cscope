@@ -1,2 +1,12 @@
 *.o
 *.patch
+Makefile
+config.h
+config.log
+config.status
+contrib/Makefile
+doc/Makefile
+src/.deps/
+src/Makefile
+src/cscope
+stamp-h1
