@@ -31,9 +31,9 @@
  DAMAGE. 
  =========================================================================*/
 
-/*
-#define DEBUG_LOGS 
-*/
+
+#define DEBUG_LOGS 1
+
 
 /*	cscope - interactive C symbol cross-reference
  *
@@ -138,6 +138,17 @@ static	void	my_yymore(void);
 
 #endif /* !COMMENTS_BY_FLEX*/
 
+void trac(const char *format, ...)
+{
+#if DEBUG_LOGS
+    va_list arg;
+
+    va_start(arg, format);
+    vprintf(format, arg);
+    va_end(arg);
+#endif
+}
+
 
 %}
 operator	"operator"("++"|"--"|"<"|">"|"<<"|">>"|"()"|"=="|"!=")
@@ -216,9 +227,7 @@ mib_comment "--"[^\n]*\n
 
 ^IMPORTS{ws}*(::=)?{wsnl}*{mib_global_type} {
     /* skip this MIB keyword */
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB IMPORTS statement\n");
-#endif
+    trac("!!!!MIB IMPORTS statement\n");
     //yy_set_bol(0);
     while (first < my_yyleng && (my_yytext[first] == '\n'))
     {
@@ -241,31 +250,25 @@ mib_comment "--"[^\n]*\n
 }
 
 ^{ws}*{mib_identifier}{ws}*(::=)?{wsnl}*{mib_global_type}  {
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB GLOBAL TYPE\n");
-#endif
+    trac("!!!!MIB GLOBAL TYPE\n");
     my_yymore();
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB token (line %d): %d - %s\n", myylineno, first, my_yytext);
-#endif
+    trac("!!!!MIB token (line %d): %d - %s\n", myylineno, first, my_yytext);
     /*skip over previous new line ?, TODO only if not first line ?*/
     /*first = 0;*/
     while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
-        /*printf("!!!!MIB first: %d\n", first);*/
+        /*trac("!!!!MIB first: %d\n", first);*/
         first++;
     }
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t' && my_yytext[last] != ':') {
-        /*printf("!!!!MIB last: %d\n", last);*/
+        /*trac("!!!!MIB last: %d\n", last);*/
         last++;
     }
     yyless(last);
     yy_set_bol(0);
     
     my_yyleng = last;
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB token (line %d): %d - %d [my_yyleng = %d]\n", myylineno, first, last, my_yyleng);
-#endif
+    trac("!!!!MIB token (line %d): %d - %d [my_yyleng = %d]\n", myylineno, first, last, my_yyleng);
    
     /*yyless(0);
     yy_set_bol(0);*/
@@ -273,9 +276,7 @@ mib_comment "--"[^\n]*\n
 }
 
 ^{mib_comment}  {
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB COMMENT\n");
-#endif
+    trac("!!!!MIB COMMENT\n");
     ++myylineno;
     lineno = myylineno;
 }
@@ -284,7 +285,7 @@ mib_comment "--"[^\n]*\n
     my_yymore();
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-        /*printf("!!!!MIB last: %d\n", last);*/
+        /*trac("!!!!MIB last: %d\n", last);*/
         last++;
     }
     my_yyleng = last;
@@ -297,32 +298,26 @@ mib_comment "--"[^\n]*\n
             /* NOTREACHED */
         }
 ({ws}+|{ws}*\({ws}*){mib_identifier} {
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB IDENTIFIER\n");
-#endif
+    trac("!!!!MIB IDENTIFIER\n");
     my_yymore();
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
-#endif
+    trac("!!!!MIB token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
     //first = 1;
     /*skip over previous new line ?, TODO only if not first line ?*/
     while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(') {
-        /*printf("!!!!MIB first: %d\n", last);*/
+        /*trac("!!!!MIB first: %d\n", last);*/
         first++;
     }
     while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(')) {
-        /*printf("!!!!MIB first: %d\n", first);*/
+        /*trac("!!!!MIB first: %d\n", first);*/
         first++;
     }
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-        /*printf("!!!!MIB last: %d\n", last);*/
+        /*trac("!!!!MIB last: %d\n", last);*/
         last++;
     }
     my_yyleng = last;
-#ifdef DEBUG_LOGS
-    printf("!!!!MIB token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
-#endif
+    trac("!!!!MIB token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
     return(IDENT);
 }
 
@@ -704,18 +699,14 @@ class{wsnl}+{identifier}({wsnl}|{identifier}|[():])*\{	{	/* class definition */
 
 extern{wsnl}+\"C\"({wsnl})*\{	{	
             /* extern "C" declaration - skip */
-#ifdef DEBUG_LOGS
-            printf("extern \"C\" on line %d\n", myylineno);
-#endif
+            trac("extern \"C\" on line %d\n", myylineno);
             goto more;
             /* NOTREACHED */
         }
 
 typeof  {
             /* typeof GNU C extension - skip */
-#ifdef DEBUG_LOGS
-            printf("typeof GNU C keyword on line %d\n", myylineno);
-#endif
+            trac("typeof GNU C keyword on line %d\n", myylineno);
             goto more;
         }
 
@@ -766,7 +757,7 @@ typeof  {
 			/*MY_YYMORE();*/
 			/*last = strlen(my_yytext) - 1;*/
 
-			/*printf("HERE first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);*/
+			/*trac("HERE first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);*/
 
             /* after incomplete declaration, we want the symbol to be indexed, but only as symbol, not as global definition of symbol */
 			token=IDENT;
@@ -782,13 +773,13 @@ typeof  {
 			my_yymore();
 			last = my_yyleng;
 
-			printf("XXX first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);
+			trac("XXX first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);
 
 			esudef = NO;
 			token = IDENT;
 			tagdef = '\0';
 			BEGIN(INITIAL);
-			printf("HEREALL token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);
+			trac("HEREALL token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);
 			return token;
 			*/
 
@@ -856,9 +847,9 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			/* NOTREACHED */
 		}
 
-<WAS_IDENTIFIER>{       
-{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))	{
-/*{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]    {*/
+<WAS_IDENTIFIER>{
+{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]    {
+/*{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))	{*/
 			/* a function definition */
 			/* note: "#define a (b) {" and "#if defined(a)\n#" 
 			 * are not fcn definitions! */
@@ -870,9 +861,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			 * reason for the parsing bug concerning function pointer usage,
 			 * I suspect. --- I think my new special-case rule for 'if'
 			 * could be helpful in removing that limitation */
-#ifdef DEBUG_LOGS
-            printf("function definition match identifier = %s\n", &my_yytext[ident_start]);
-#endif
+            trac("function definition match identifier = %s\n", &my_yytext[ident_start]);
 			if (((braces == 0 && ppdefine == NO && my_yytext[0] != '#' && rules == NO) ||
 			    (braces == 1 && classdef == YES)) && (fcndef == NO && external == external)) {
 				fcndef = YES;
@@ -883,12 +872,11 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			goto fcncal;
 			/* NOTREACHED */
 		}
-{wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*	{
-/*{ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*    {*/
+
+{ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*    {
+/*{wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*	{*/
     /* function call */
-#ifdef DEBUG_LOGS
-        printf("function call match identifier = %s\n", &my_yytext[ident_start]);
-#endif
+        trac("function call match identifier = %s\n", &my_yytext[ident_start]);
 		fcncal:	if ((fcndef == YES || ppdefine == YES || rules == YES) && (external == external)) {
 				token = FCNCALL;
 				goto fcn;
@@ -902,6 +890,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			goto ident;
 			/* NOTREACHED */
 		}
+
 ("*"|{wsnl})+{identifier}		{	/* typedef name or modifier use */
 			goto ident;
 			/* NOTREACHED */
@@ -909,10 +898,8 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 .|\n	{		/* general identifer usage */
 			char	*s;
 
-#ifdef DEBUG_LOGS
-            printf("ENTRY global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
+            trac("ENTRY global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
                     global, ppdefine, external, initializer, arraydimension, structfield, template, fcndef);
-#endif
 
 			if (global == YES && ppdefine == NO && my_yytext[0] != '#' &&
 			    external == NO && initializer == NO && 
@@ -976,7 +963,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 
 			/* if found word was a keyword: */
 			if ((s = lookup(my_yytext + first)) != NULL) {
-                /*printf("keyword %s\n", my_yytext + first);*/
+                /*trac("keyword %s\n", my_yytext + first);*/
 				first = my_yyleng;
 				
 				/* if the start of a typedef */
@@ -992,7 +979,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 					/* do nothing */
 				} else if (s == externtext) {
 					/* if an external definition */
-                    /*printf("EXTERN %s - %s\n", my_yytext + first, s);*/
+                    /*trac("EXTERN %s - %s\n", my_yytext + first, s);*/
 					externalbraces = braces;
 					external = YES;
 				} else if (templateparens == parens && template == YES) {
@@ -1014,14 +1001,14 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 				if (tagdef && strnotequal(my_yytext + first, "class")) {
 					token = tagdef;
 					tagdef = '\0';
-					/*printf("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
+					/*trac("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
 					if (braces == 0) {
 						esudef = YES;
                         /*strcpy(stored_esu_ident, my_yytext + first);*/
                         strncpy(stored_esu_ident, my_yytext + first, MAX_ESU_IDENT_LEN);
                         stored_esu_ident[MAX_ESU_IDENT_LEN] = 0;
 					}
-					/*printf("HERE3 esudef: %d\n", esudef);*/
+					/*trac("HERE3 esudef: %d\n", esudef);*/
 				} else if (braces == typedefbraces && oldtype == NO &&
 				           arraydimension == NO) {
 					/* if a typedef name */
@@ -1060,12 +1047,10 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
                         token = IDENT;
                     }
 				}
-#ifdef DEBUG_LOGS
-                printf("FINAL global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
+                trac("FINAL global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
                         global, ppdefine, external, initializer, arraydimension, structfield, template, fcndef);
-                printf("BRACES braces: %d, externalbraces: %d, typedefbraces: %d\n", braces, externalbraces, typedefbraces);
-				printf("HERE2ALL token: %d(%c), tagdef: %d, esudef: %d (line %d) - %s\n", token, token > 0x20 ? token : ' ', tagdef, esudef, myylineno, my_yytext + first);
-#endif
+                trac("BRACES braces: %d, externalbraces: %d, typedefbraces: %d\n", braces, externalbraces, typedefbraces);
+				trac("HERE2ALL token: %d(%c), tagdef: %d, esudef: %d (line %d) - %s\n", token, token > 0x20 ? token : ' ', tagdef, esudef, myylineno, my_yytext + first);
 				/* my_yymore(); */
 				return(token);
 				/* NOTREACHED */
@@ -1276,9 +1261,7 @@ initscanner(char *srcfile)
 		*my_yytext = '\0';
 	my_yyleng = 0;
 
-#ifdef DEBUG_LOGS
-    printf("===parsing file: %s===\n", srcfile);
-#endif
+    trac("===parsing file: %s===\n", srcfile);
 
 	BEGIN(INITIAL);
 
