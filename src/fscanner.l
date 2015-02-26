@@ -31,6 +31,10 @@
  DAMAGE. 
  =========================================================================*/
 
+/*
+#define DEBUG_LOGS 
+*/
+
 /*	cscope - interactive C symbol cross-reference
  *
  *	C symbol scanner
@@ -79,6 +83,7 @@ static	int	iflevel;		/* #if nesting level */
 static	BOOL	initializer;		/* data initializer */
 static	int	initializerbraces;	/* data initializer outer brace count */
 static	BOOL	lex;			/* lex file */
+static	BOOL	mib;			/* mib file */
 static	int	miflevel = IFLEVELINC;	/* maximum #if nesting level */
 static	int	*maxifbraces;		/* maximum brace count within #if */
 static	int	*preifbraces;		/* brace count before #if */
@@ -97,6 +102,10 @@ static	int	token;			/* token found */
 static	int 	ident_start;		/* begin of preceding identifier */
 static	int	eat_incomplete;  /* for incomplete declarations of e/s/u */
 static  BOOL one_shot_not_global_flag;  /* resets to false after one usage */
+static  BOOL one_shot_typedef;  /* only one typedef new identifier after one typedef keyword, unless e/s/u */
+
+#define MAX_ESU_IDENT_LEN 255
+char stored_esu_ident[MAX_ESU_IDENT_LEN+1];  //max length of e/s/u identifier
 
 /* If this is defined to 1, use flex rules rather than the input
  * function to discard comments. The scanner gains quite a bit of
@@ -130,11 +139,15 @@ static	void	my_yymore(void);
 
 
 %}
+operator	"operator"("++"|"--"|"<"|">"|"<<"|">>"|"()"|"=="|"!=")
 identifier	[a-zA-Z_$][a-zA-Z_0-9$]*
 number		\.?[0-9][.0-9a-fA-FlLuUxX]*
 comment		"/*"([^*]*("*"+[^/])?)*"*/"|"//"[^\n]*\n
 ws		[ \t\r\v\f]
 wsnl		[ \t\r\v\f\n]|{comment}
+mib_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
+mib_global_type ("MODULE-IDENTITY"|"OBJECT IDENTIFIER"|"TEXTUAL-CONVENTION"|"OBJECT-TYPE"|"NOTIFICATION-TYPE"|"SEQUENCE"|"OBJECT-GROUP"|"NOTIFICATION-GROUP"|"MODULE-COMPLIANCE"|"DEFINITIONS")
+mib_comment "--"[^\n]*\n
 
 /* flex options: stack of start conditions, and don't use yywrap() */
 %option stack
@@ -145,7 +158,7 @@ wsnl		[ \t\r\v\f\n]|{comment}
 %o 7000
 
 /* exclusive start conditions. not available in AT&T lex -> use flex! */
-%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT
+%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE
 
 %%
 
@@ -198,6 +211,155 @@ wsnl		[ \t\r\v\f\n]|{comment}
 			}
 		}
 
+<MIB>{
+
+^{ws}*{mib_identifier}{ws}*(::=)?{ws}*{mib_global_type}  {
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB GLOBAL TYPE\n");
+#endif
+    my_yymore();
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB token (line %d): %d - %s\n", myylineno, first, my_yytext);
+#endif
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    /*first = 0;*/
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+        /*printf("!!!!MIB first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t' && my_yytext[last] != ':') {
+        /*printf("!!!!MIB last: %d\n", last);*/
+        last++;
+    }
+    yyless(last);
+    yy_set_bol(0);
+    
+    my_yyleng = last;
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB token (line %d): %d - %d [my_yyleng = %d]\n", myylineno, first, last, my_yyleng);
+#endif
+   
+    /*yyless(0);
+    yy_set_bol(0);*/
+    return(FCNDEF);
+}
+
+^{mib_comment}  {
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB COMMENT\n");
+#endif
+    ++myylineno;
+    lineno = myylineno;
+}
+
+^{mib_identifier} {
+    my_yymore();
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        /*printf("!!!!MIB last: %d\n", last);*/
+        last++;
+    }
+    my_yyleng = last;
+    return(IDENT);
+}
+
+\"		{	/* string constant */
+            BEGIN(MIB_IN_DQUOTE);
+            goto more;
+            /* NOTREACHED */
+        }
+({ws}+|{ws}*\({ws}*){mib_identifier} {
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB IDENTIFIER\n");
+#endif
+    my_yymore();
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
+#endif
+    //first = 1;
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(') {
+        /*printf("!!!!MIB first: %d\n", last);*/
+        first++;
+    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(')) {
+        /*printf("!!!!MIB first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        /*printf("!!!!MIB last: %d\n", last);*/
+        last++;
+    }
+    my_yyleng = last;
+#ifdef DEBUG_LOGS
+    printf("!!!!MIB token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+#endif
+    return(IDENT);
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<MIB_IN_DQUOTE>{
+\"	{	
+    BEGIN(MIB);
+    goto more;
+}
+
+^.if{ws}*\({ws}*{mib_identifier}{ws}*\) {
+    yyless(0);
+    yy_set_bol(0);
+    BEGIN(MIB);
+    goto more;
+}
+
+^.else {
+    BEGIN(MIB);
+    goto more;
+}
+
+^.endif {
+    BEGIN(MIB);
+    goto more;
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
 <SDL>STATE[ \t]+({identifier}|\*)	{ /* sdl state, treat as function def */
 			braces = 1;
 			fcndef = YES;
@@ -212,21 +374,21 @@ wsnl		[ \t\r\v\f\n]|{comment}
 
 \{		{	/* count unmatched left braces for fcn def detection */
             if (ppdefine == NO) {
-				++braces;
-			}
-			
-			/* mark an untagged enum/struct/union so its beginning
-			   can be found */
-			if (tagdef) {
-				if (braces == 1) {
-					esudef = YES;
-				}
-				token = tagdef;
-				tagdef = '\0';
-				last = first;
-				my_yymore();
-				return(token);
-			}
+                ++braces;
+            }
+            
+            /* mark an untagged enum/struct/union so its beginning
+               can be found */
+            if (tagdef) {
+                if (braces == 1) {
+                    esudef = YES;
+                }
+                token = tagdef;
+                tagdef = '\0';
+                last = first;
+                my_yymore();
+                return(token);
+            }
 			goto more;
 			/* NOTREACHED */
 		}
@@ -276,6 +438,10 @@ wsnl		[ \t\r\v\f\n]|{comment}
 				if (braces < maxifbraces[--iflevel]) {
 					braces = maxifbraces[iflevel];
 				}
+                else if (braces != preifbraces[iflevel])
+                {
+                    braces = preifbraces[iflevel];
+                }
 			}
 			BEGIN(INITIAL);
 			yyless(1);
@@ -379,6 +545,11 @@ wsnl		[ \t\r\v\f\n]|{comment}
 				/* if the end of an enum/struct/union definition */
 				if (esudef == YES) {
 					esudef = NO;
+
+                    if (braces == typedefbraces)
+                    {
+                        one_shot_typedef = YES;
+                    }
 				}
 				/* if the end of the function */
 				else if (fcndef == YES) {
@@ -437,13 +608,15 @@ wsnl		[ \t\r\v\f\n]|{comment}
 			goto more;
 			/* NOTREACHED */
 		}
-;		{	/* if the enum/struct/union was not a definition */
+;		{	
+            /* if the enum/struct/union was not a definition */
 			if (braces == 0) {
 				esudef = NO;
 			}
 			/* if the end of a typedef */
 			if (braces == typedefbraces) {
 				typedefbraces = -1;
+                one_shot_typedef = NO;
 			}
 			/* if the end of a external definition */
 			if (braces == externalbraces) {
@@ -500,6 +673,23 @@ class{wsnl}+{identifier}({wsnl}|{identifier}|[():])*\{	{	/* class definition */
 			/* NOTREACHED */
 		}
 
+extern{wsnl}+\"C\"({wsnl})*\{	{	
+            /* extern "C" declaration - skip */
+#ifdef DEBUG_LOGS
+            printf("extern \"C\" on line %d\n", myylineno);
+#endif
+            goto more;
+            /* NOTREACHED */
+        }
+
+typeof  {
+            /* typeof GNU C extension - skip */
+#ifdef DEBUG_LOGS
+            printf("typeof GNU C keyword on line %d\n", myylineno);
+#endif
+            goto more;
+        }
+
 ("enum")	{
 			ident_start = first;
 			BEGIN(WAS_ESU);
@@ -548,10 +738,12 @@ class{wsnl}+{identifier}({wsnl}|{identifier}|[():])*\{	{	/* class definition */
 			/*last = strlen(my_yytext) - 1;*/
 
 			/*printf("HERE first: %d, last: %d, %d-%d: %s\n", first, last, ident_start, my_yyleng, &my_yytext[first]);*/
-	
+
+            /* after incomplete declaration, we want the symbol to be indexed, but only as symbol, not as global definition of symbol */
 			token=IDENT;
 			one_shot_not_global_flag = YES;
 
+            /* rescan again this identifier, but without ESU state, therefore will be parsed without enum/struct/union keyword */
 			yyless(0);
 			yy_set_bol(0);
 			BEGIN(INITIAL);
@@ -628,7 +820,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			goto more;
 }	
 
-{identifier}	{	/* identifier found: do nothing, yet. (!) */
+{identifier}|{operator}	{	/* identifier found: do nothing, yet. (!) */
 			BEGIN(WAS_IDENTIFIER);
 			ident_start = first;
 			goto more;
@@ -636,7 +828,8 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 		}
 
 <WAS_IDENTIFIER>{       
-{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]	{
+{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|[*;[\],]|{wsnl})*[:a-zA-Z_#{]))	{
+/*{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]    {*/
 			/* a function definition */
 			/* note: "#define a (b) {" and "#if defined(a)\n#" 
 			 * are not fcn definitions! */
@@ -648,8 +841,11 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			 * reason for the parsing bug concerning function pointer usage,
 			 * I suspect. --- I think my new special-case rule for 'if'
 			 * could be helpful in removing that limitation */
-			if ((braces == 0 && ppdefine == NO && my_yytext[0] != '#' && rules == NO) ||
-			    (braces == 1 && classdef == YES)) {
+#ifdef DEBUG_LOGS
+            printf("function definition match identifier = %s\n", &my_yytext[ident_start]);
+#endif
+			if (((braces == 0 && ppdefine == NO && my_yytext[0] != '#' && rules == NO) ||
+			    (braces == 1 && classdef == YES)) && (fcndef == NO && external == external)) {
 				fcndef = YES;
 				token = FCNDEF;
 				goto fcn;
@@ -658,12 +854,18 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			goto fcncal;
 			/* NOTREACHED */
 		}
-{ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*		{ 	/* function call */
-		fcncal:	if (fcndef == YES || ppdefine == YES || rules == YES) {
+{wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*	{
+/*{ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*    {*/
+    /* function call */
+#ifdef DEBUG_LOGS
+        printf("function call match identifier = %s\n", &my_yytext[ident_start]);
+#endif
+		fcncal:	if ((fcndef == YES || ppdefine == YES || rules == YES) && (external == external)) {
 				token = FCNCALL;
 				goto fcn;
 				/* NOTREACHED */
 			}
+            one_shot_typedef = NO;
 			if (template == NO) {
 				templateparens = parens;
 				template = YES;
@@ -677,6 +879,11 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 		}
 .|\n	{		/* general identifer usage */
 			char	*s;
+
+#ifdef DEBUG_LOGS
+            printf("ENTRY global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
+                    global, ppdefine, external, initializer, arraydimension, structfield, template, fcndef);
+#endif
 
 			if (global == YES && ppdefine == NO && my_yytext[0] != '#' &&
 			    external == NO && initializer == NO && 
@@ -740,12 +947,14 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 
 			/* if found word was a keyword: */
 			if ((s = lookup(my_yytext + first)) != NULL) {
+                /*printf("keyword %s\n", my_yytext + first);*/
 				first = my_yyleng;
 				
 				/* if the start of a typedef */
 				if (s == typedeftext) {
 					typedefbraces = braces;
 					oldtype = YES;
+                    one_shot_typedef = YES;
 				}
 				/* if an enum/struct/union */
 				/* (needed for "typedef struct tag name;" so
@@ -754,6 +963,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 					/* do nothing */
 				} else if (s == externtext) {
 					/* if an external definition */
+                    /*printf("EXTERN %s - %s\n", my_yytext + first, s);*/
 					externalbraces = braces;
 					external = YES;
 				} else if (templateparens == parens && template == YES) {
@@ -778,16 +988,55 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 					/*printf("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
 					if (braces == 0) {
 						esudef = YES;
+                        /*strcpy(stored_esu_ident, my_yytext + first);*/
+                        strncpy(stored_esu_ident, my_yytext + first, MAX_ESU_IDENT_LEN);
+                        stored_esu_ident[MAX_ESU_IDENT_LEN] = 0;
 					}
 					/*printf("HERE3 esudef: %d\n", esudef);*/
 				} else if (braces == typedefbraces && oldtype == NO &&
 				           arraydimension == NO) {
 					/* if a typedef name */
-					token = TYPEDEF;
+                    if (token == FCNDEF)
+                    {
+                        /* reset fcndef flag */
+                        fcndef = NO;
+                    }
+                    if (one_shot_typedef == YES)
+                    {
+                        if (strnotequal(my_yytext + first, stored_esu_ident))
+                        {
+                            token = TYPEDEF;
+                            one_shot_typedef = NO;
+                        }
+                        else
+                        {
+                            /* stored e/s/u ident is the same as typedef ident, changed this one to simple symbol - IDENT */
+                            token = IDENT;
+                        }
+                    }
+                    else
+                    {
+                        if (token == GLOBALDEF)
+                        {
+                            /* suppress global definitions in typedef-ed functions */
+                            token = IDENT;
+                        }
+                    }
 				} else {
 					oldtype = NO;
+
+                    if ((token == GLOBALDEF) && (braces > 0))
+                    {
+                        /* suppress global definitions in standalone braces blocks (not in any function, but still not global) */
+                        token = IDENT;
+                    }
 				}
-				/*printf("HERE2ALL token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
+#ifdef DEBUG_LOGS
+                printf("FINAL global %d, ppdefine %d, external %d, initializer %d, arraydimension %d, structfield %d, template %d, fcndef %d\n", 
+                        global, ppdefine, external, initializer, arraydimension, structfield, template, fcndef);
+                printf("BRACES braces: %d, externalbraces: %d, typedefbraces: %d\n", braces, externalbraces, typedefbraces);
+				printf("HERE2ALL token: %d(%c), tagdef: %d, esudef: %d (line %d) - %s\n", token, token > 0x20 ? token : ' ', tagdef, esudef, myylineno, my_yytext + first);
+#endif
 				/* my_yymore(); */
 				return(token);
 				/* NOTREACHED */
@@ -980,6 +1229,7 @@ initscanner(char *srcfile)
 	initializer = NO;	/* data initializer */
 	initializerbraces = -1;	/* data initializer outer brace count */
 	lex = NO;		/* lex file */
+    mib = NO;		/* mib file */
 	parens = 0;		/* unmatched left parenthesis count */
 	ppdefine = NO;		/* preprocessor define statement */
 	pseudoelif = NO;	/* pseudo-#elif */
@@ -996,12 +1246,22 @@ initscanner(char *srcfile)
 	if (my_yytext)
 		*my_yytext = '\0';
 	my_yyleng = 0;
-	
+
+#ifdef DEBUG_LOGS
+    printf("===parsing file: %s===\n", srcfile);
+#endif
+
 	BEGIN(INITIAL);
 
 	/* if this is not a C file */
 	if ((s = strrchr(srcfile, '.')) != NULL) {
 		switch (*++s) {	/* this switch saves time on C files */
+        case 'm':
+            if (strcmp(s, "mib") == 0) {	/* mib */
+                mib = YES;
+                BEGIN(MIB);
+            }
+            break;
 		case 'b':
 			if (strcmp(s, "bp") == 0) {	/* breakpoint listing */
 				bplisting = YES;
