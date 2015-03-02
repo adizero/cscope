@@ -456,9 +456,14 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 }
 
 ^{ws}*{tcl_comment}  {
-    trac("!!!!TCL COMMENT\n");
+    trac("!!!!TCL WHOLE LINE COMMENT\n");
     ++myylineno;
     lineno = myylineno;
+}
+
+"#".*\n? {
+    trac("!!!!TCL PART LINE COMMENT\n");
+    goto eol;
 }
 
 ^{tcl_identifier} {
@@ -482,11 +487,21 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
     return(IDENT);
 }
 
+\\\" { /*escaped " - ignore */
+    goto more;
+}
+
+\"\n { /*trailing " at the end of the line - probably bug in .tcl file - ignore */
+    trac("!!!!TCL TRAILING DOUBLE QUOTE\n");
+    goto eol;
+}
+
 \"		{	/* string constant */
             BEGIN(TCL_IN_DQUOTE);
             goto more;
             /* NOTREACHED */
         }
+
 ({ws}+|{ws}*\({ws}*){tcl_identifier} {
     trac("!!!!TCL IDENTIFIER\n");
     my_yymore();
@@ -538,6 +553,11 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 }
 
 <TCL_IN_DQUOTE>{
+
+\\\" { /*escaped " - ignore */
+    goto more;
+}
+
 \"	{	
     BEGIN(TCL);
     goto more;

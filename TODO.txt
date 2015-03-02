@@ -6,3 +6,18 @@ support identifiers inside strings (either in [func1 $ident], or ${ident}, or ju
 
 
 support function calls
+
+
+support bugs in .tcl scripts themselves
+    filter_actionFwdRtr_tests.tcl (too many " in the line - spillover):
+    
+*       log_msg INFO "| Traffic Profile used => Fixed src IPv6 address, only incr L4 tcp port - Rate $pps pps with lsr-ip hash enabled"   |"
+   
+my .tcl syntax parsing bugs
+    service_aware_filter.tcl (rest of the line inline # comment):
+
+*       set opt(ab-type)    "mpls" ; # ldp | gre | rsvp-te | mpls | mpls-gre"
+        
+    service_aware_filter.tcl (escaped \")
+
+*       if { [regexp "\"" $filterName] } {
