@@ -32,7 +32,8 @@
  =========================================================================*/
 
 
-#define DEBUG_LOGS 1
+#define DEBUG_LOGS 0
+#define SIMPLE_C_FUNCTION_TOKENS 1
 
 
 /*	cscope - interactive C symbol cross-reference
@@ -84,6 +85,7 @@ static	BOOL	initializer;		/* data initializer */
 static	int	initializerbraces;	/* data initializer outer brace count */
 static	BOOL	lex;			/* lex file */
 static	BOOL	mib;			/* mib file */
+static	BOOL	tcl;			/* tcl file */
 static	int	miflevel = IFLEVELINC;	/* maximum #if nesting level */
 static	int	*maxifbraces;		/* maximum brace count within #if */
 static	int	*preifbraces;		/* brace count before #if */
@@ -161,6 +163,16 @@ mib_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
 mib_global_type ("MODULE-IDENTITY"|"OBJECT IDENTIFIER"|"TEXTUAL-CONVENTION"|"OBJECT-TYPE"|"NOTIFICATION-TYPE"|"SEQUENCE"|"OBJECT-GROUP"|"NOTIFICATION-GROUP"|"MODULE-COMPLIANCE"|"DEFINITIONS")
 mib_comment "--"[^\n]*\n
 
+tcl_identifier [a-zA-Z_$:][\-a-zA-Z_0-9$:]*
+tcl_comment "#"[^\n]*\n
+
+/*
+c_function_definition {ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]
+c_function_call {ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*
+*/
+c_function_definition {wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))
+c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
+
 /* flex options: stack of start conditions, and don't use yywrap() */
 %option stack
 %option noyywrap
@@ -170,7 +182,7 @@ mib_comment "--"[^\n]*\n
 %o 7000
 
 /* exclusive start conditions. not available in AT&T lex -> use flex! */
-%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE
+%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE TCL TCL_IN_DQUOTE
 
 %%
 
@@ -362,6 +374,172 @@ mib_comment "--"[^\n]*\n
 ^.endif {
     mib_was_in_dquote = NO;
     //BEGIN(MIB);
+    goto more;
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<TCL>{
+
+^{ws}*("proc"|"itcl::body"|"itcl::class"){ws}*{tcl_identifier}{ws}*  {
+    trac("!!!!TCL GLOBAL TYPE\n");
+    my_yymore();
+    trac("!!!!TCL token (line %d): %d - %s\n", myylineno, first, my_yytext);
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    /*
+    BOOL ictl_class = NO;
+    BOOL ictl_fdef = NO;
+    if (strncmp(my_yytext, "itcl::class", strlen("itcl::class") == 0))
+    {
+        ictl_class = YES;
+    }
+    else
+    {
+        if (strncmp(my_yytext, "itcl::body", strlen("itcl::body") == 0))
+        {
+            ictl_fdef = YES;
+        }
+    }
+    */
+
+    /*first = 0;*/
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+        /*trac("!!!!TCL first: %d\n", first);*/
+        first++;
+    }
+    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t') {
+        /*trac("!!!!TCL first: %d\n", last);*/
+        first++;
+    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+        /*trac("!!!!TCL first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        /*trac("!!!!TCL last: %d\n", last);*/
+        last++;
+    }
+    yyless(last);
+    yy_set_bol(0);
+    
+    my_yyleng = last;
+    trac("!!!!TCL token (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
+   
+    /*yyless(0);
+    yy_set_bol(0);*/
+    return(FCNDEF);
+}
+
+^{ws}*{tcl_comment}  {
+    trac("!!!!TCL COMMENT\n");
+    ++myylineno;
+    lineno = myylineno;
+}
+
+^{tcl_identifier} {
+    trac("!!!!TCL0 IDENTIFIER\n");
+    my_yymore();
+    trac("!!!!TCL0 token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        trac("!!!!TCL0 last: %d\n", last);
+        last++;
+    }
+    my_yyleng = last;
+    trac("!!!!TCL0 token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    return(IDENT);
+}
+
+\"		{	/* string constant */
+            BEGIN(TCL_IN_DQUOTE);
+            goto more;
+            /* NOTREACHED */
+        }
+({ws}+|{ws}*\({ws}*){tcl_identifier} {
+    trac("!!!!TCL IDENTIFIER\n");
+    my_yymore();
+    trac("!!!!TCL token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
+    //first = 1;
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(') {
+        /*trac("!!!!TCL first: %d\n", last);*/
+        first++;
+    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(')) {
+        /*trac("!!!!TCL first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        /*trac("!!!!TCL last: %d\n", last);*/
+        last++;
+    }
+    my_yyleng = last;
+    trac("!!!!TCL token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    return(IDENT);
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<TCL_IN_DQUOTE>{
+\"	{	
+    BEGIN(TCL);
     goto more;
 }
 
@@ -848,8 +1026,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 		}
 
 <WAS_IDENTIFIER>{
-{ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]    {
-/*{wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))	{*/
+{c_function_definition} {
 			/* a function definition */
 			/* note: "#define a (b) {" and "#if defined(a)\n#" 
 			 * are not fcn definitions! */
@@ -873,8 +1050,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 			/* NOTREACHED */
 		}
 
-{ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*    {
-/*{wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*	{*/
+{c_function_call} {
     /* function call */
         trac("function call match identifier = %s\n", &my_yytext[ident_start]);
 		fcncal:	if ((fcndef == YES || ppdefine == YES || rules == YES) && (external == external)) {
@@ -963,7 +1139,7 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 
 			/* if found word was a keyword: */
 			if ((s = lookup(my_yytext + first)) != NULL) {
-                /*trac("keyword %s\n", my_yytext + first);*/
+                trac("keyword %s\n", my_yytext + first);
 				first = my_yyleng;
 				
 				/* if the start of a typedef */
@@ -1001,14 +1177,14 @@ if{wsnl}*\(	{ 	/* ignore 'if' */
 				if (tagdef && strnotequal(my_yytext + first, "class")) {
 					token = tagdef;
 					tagdef = '\0';
-					/*trac("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);*/
+					trac("HERE2 token: %d, tagdef: %d - %s\n", token, tagdef, my_yytext + first);
 					if (braces == 0) {
 						esudef = YES;
                         /*strcpy(stored_esu_ident, my_yytext + first);*/
                         strncpy(stored_esu_ident, my_yytext + first, MAX_ESU_IDENT_LEN);
                         stored_esu_ident[MAX_ESU_IDENT_LEN] = 0;
 					}
-					/*trac("HERE3 esudef: %d\n", esudef);*/
+					trac("HERE3 esudef: %d\n", esudef);
 				} else if (braces == typedefbraces && oldtype == NO &&
 				           arraydimension == NO) {
 					/* if a typedef name */
@@ -1273,6 +1449,12 @@ initscanner(char *srcfile)
                 mib = YES;
                 mib_was_in_dquote = NO;
                 BEGIN(MIB);
+            }
+            break;
+        case 't':
+            if (strcmp(s, "tcl") == 0) {	/* tcl */
+                tcl = YES;
+                BEGIN(TCL);
             }
             break;
 		case 'b':
