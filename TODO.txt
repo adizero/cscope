@@ -1,0 +1,8 @@
+support identifiers inside strings (either in [func1 $ident], or ${ident}, or just $ident):
+    
+    lappend cmdList "/configure filter [getVar4 $filterType]-filter 550 create entry 1 create match dst-ip [ipConvert $family $dstIp]/[RP_maskConvert $family $fullMask]"
+
+    if {$r1 == "ERROR"} { log_msg ERROR "unexpected CLI output for command: $cmd"; set Result "FAILED" }
+
+
+support function calls
