@@ -12,3 +12,5 @@ src/cscope
 stamp-h1
 src/egrep.c
 src/fscanner.c
+*.out
+out.txt
