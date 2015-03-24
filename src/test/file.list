@@ -1,4 +1,5 @@
-#./EsrFilter.tcl
+./EsrFilter.tcl
 #./wccp_enhanced.tcl
 #./service_aware_filter.tcl
-./filter_actionFwdRtr_tests.tcl
+#./filter_actionFwdRtr_tests.tcl
+./flowspec_vprnTests.tcl
