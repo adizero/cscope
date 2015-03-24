@@ -163,7 +163,7 @@ mib_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
 mib_global_type ("MODULE-IDENTITY"|"OBJECT IDENTIFIER"|"TEXTUAL-CONVENTION"|"OBJECT-TYPE"|"NOTIFICATION-TYPE"|"SEQUENCE"|"OBJECT-GROUP"|"NOTIFICATION-GROUP"|"MODULE-COMPLIANCE"|"DEFINITIONS")
 mib_comment "--"[^\n]*\n
 
-tcl_identifier [a-zA-Z_$:][\-a-zA-Z_0-9$:]*
+tcl_identifier [a-zA-Z_$:.][\-a-zA-Z_0-9$:.]*
 tcl_comment "#"[^\n]*\n
 
 /*
