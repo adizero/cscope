@@ -1,0 +1,713 @@
+module filter-types {
+    namespace "urn:nokia.com:sros:ns:yang:sr:filter-types";
+    prefix    "filter-types";
+    
+    import sros-yang-builtins { prefix "sros"; }
+
+    sros:content-summary "filter";
+
+    revision 2016-01-01 {
+            description "Initial revision";
+    }
+
+    typedef cpm-filter-action-or-default {
+        type enumeration {
+            enum drop    { value 1; }
+            enum accept  { value 2; }
+            enum queue   { value 3; }
+            enum default { value 4; }
+        }
+    }
+
+    typedef cpm-queue-id-or-zero {
+        type uint32 {
+            range 0|33..2000;
+        }
+    }
+
+    typedef filter-log-id-or-zero {
+        type uint32 {
+            range 0|101..199;
+        }
+    }
+
+    typedef filter-log-id {
+        type uint32 {
+            range 101..199;
+        }
+    }
+
+    typedef filter-log-summary-criterium {
+        description
+            "Indicates the field on which log summarization will be done.
+             - when set to srcAddr, received log packets are summarized
+               based on the src ip/mac-addr
+             - when set to dstAddr, received log packets are summarized
+               based on the dst ip/mac-addr";
+        type enumeration {
+            enum src-addr    { value 0; }
+            enum dst-addr    { value 1; }
+        }
+    }
+
+    typedef filter-id {
+        description
+            "The identification number of a filter.";
+        type uint32 {
+            range 1..65535;
+        }
+    }
+
+    typedef filter-id-or-zero {
+        type uint32 {
+            range "0..65535";
+        }
+        description
+         "The identification number of a filter. 0 indicates an invalid
+          filter-id.";
+    }
+
+    typedef dhcp-filter-action {
+        description
+            "Action to take on DHCP host creation when the filter entry matches.
+             When set to none(1), host creation proceeds as normal.
+             When set to bypass-host-creation(2), host creation is bypassed.
+             When set to drop(3), the DHCP message is dropped. ";
+        type enumeration {
+            enum none                 { value 1; }
+            enum bypass-host-creation { value 2; }
+            enum drop                 { value 3; }
+        }
+    }
+
+    typedef dhcp6-filter-action-flags {
+        description
+            "Indicates for which types of DHCPv6 IAs the bypass-host-creation 
+            action is applied.";
+        type bits {
+            bit na   { position 0; }
+            bit pd   { position 1; }
+        }
+    }
+
+    typedef entry-id-or-zero {
+        description
+            "Uniquely identifies an entry in a policy or filter table.
+             To facilitate insertion of entries in the tables, we recommend
+             assigning entry IDs by 10s:  10, 20, 30, etc.";
+        type uint32 {
+            range 0..65535;
+        }
+    }
+
+    typedef any-entry-id {
+        description
+            "Uniquely identifies an entry in a policy or filter table.
+             To facilitate insertion of entries in the tables, we recommend
+             assigning entry IDs by 10s:  10, 20, 30, etc.";
+        type uint32 {
+            range 1..671154175;
+        }
+    } 
+
+    typedef entry-id {
+        description
+            "Uniquely identifies an entry in a policy or filter table.
+             To facilitate insertion of entries in the tables, we recommend
+             assigning entry IDs by 10s:  10, 20, 30, etc.";
+        type entry-id-or-zero {
+            range 1..65535;
+        }
+    } 
+
+    typedef dhcp-filter-match {
+        description
+         "Match condition for a DHCP option in a DHCP filter entry
+
+          When set to present(1) the related DHCP option must be present,
+          when set to absent(2) the related DHCP option must be absent.
+
+          When set to string(3) the option must (partially) match a specified
+          ASCII string, setting string-exact(4) requires an exact match, setting
+          string-invert(5) requires the option not to (partially) match, setting
+          string-exact-invert(6) requires the option not to match exact.
+
+          Setting hex(7), hex-exact(8), hex-invert(9) or hex-exact-invert(10)
+          will use a hex octet string for the matching.";
+        type enumeration {
+            enum present             { value 1; }
+            enum absent              { value 2; }
+            enum string              { value 3; }
+            enum string-exact        { value 4; }
+            enum string-invert       { value 5; }
+            enum string-exact-invert { value 6; }
+            enum hex                 { value 7; }
+            enum hex-exact           { value 8; }
+            enum hex-invert          { value 9; }
+            enum hex-exact-invert    { value 10; }
+        }
+    }
+
+    typedef filter-default-action {
+        description "The default action of a filter.
+         - drop        (1): packets matching the filter entry are dropped.
+         - forward     (2): packets matching the filter entry are forwarded.";
+        type enumeration {
+            enum drop    { value 1; }
+            enum forward { value 2; }
+        }
+    }
+
+    typedef filter-scope {
+        description "The scope of a filter.";
+        type enumeration {
+            enum exclusive { value 1; }
+            enum template  { value 2; }
+            enum embedded  { value 3; }
+            enum system    { value 4; }
+        }
+    }
+
+    typedef filter-action-or-default {
+        description
+            "Action to take on a packet:
+            - drop          (1): packets matching the filter entry are dropped.
+            - forward       (2): packets matching the filter entry are forwarded.
+            - default       (3): packets matching the filter entry get the applicable
+                                 default behavior. Note: the value 'default' is
+                                 currently not supported.
+            - http-redirect (4): packets matching the filter entry are redirected.
+            - nat           (5): packets matching the filter entry are forwarded to
+                                 the NAT function in the system.
+            - reassemble    (6): packets matching the filter entry are forwarded to
+                                 the packet REASSEMBLE function in the system.
+            - gtp-Lcl-brkout(7): packets matching the filter entry are broken out
+                                 locally from a GTP tunnel (and thereby bypass the
+                                 mobile packet core). For packets that are not sent
+                                 in the context of a GTP tunnel, this action is
+                                 equivalent to 'forward'.
+            - forward-esi-L2(8): packets matching the filter entry are forwarded to
+                                 ESI identified first appliance in Nuage service
+                                 chain using EVPN-resolved VXLAN tunnel in
+                                 the specified VPLS service.
+            - forward-esi-L3(9): packets matching the filter entry are forwarded to
+                                 ESI/SF-IP identified first appliance in Nuage
+                                 service chain using EVPN-resolved VXLAN tunnel over
+                                 the configured VAS interface in the specified VPRN
+                                 service.
+            - of-packet-in (10): packets are sent to open-flow controller on
+                                 a dedicated packet-in channel part of the main or
+                                 auxilirary connection. Only open-flow controller
+                                 can specify this action.";
+        type enumeration {
+            enum drop           { value 1; }
+            enum forward        { value 2; }
+            enum default        { value 3; }
+            enum http-redirect  { value 4; }
+            enum nat            { value 5; }
+            enum reassemble     { value 6; }
+            enum gtp-lcl-brkout { value 7; }
+            enum forward-esi-L2 { value 8; }
+            enum forward-esi-L3 { value 9; }
+            enum of-packet-in   { value 10; }
+            enum unrecognized   { value 11; }
+        }
+    }
+
+    typedef ipvx-filter-entry-action {
+        description
+            "Action to take on a packet:
+             - drop                         (1): A packet matching the entry will be dropped.
+             - forward                      (2): A packet matching the entry will be
+                                                 forwarded using regular routing.
+             - http-redirect                (4): An HTTP GET packet matching the entry is
+                                                 forwarded to CPM for HTTP captive portal
+                                                 processing.
+             - nat                          (5): A packet matching the entry will be
+                                                 forwarded to NAT.
+             - reassemble                   (6): Packets matching the entry are forwarded to
+                                                 the packet REASSEMBLE function in the
+                                                 system.
+             - gtp-local-breakout           (7): A packet matching the entry is broken out
+                                                 locally from a GTP tunnel (and thereby
+                                                 bypass the mobile packet core). For packets
+                                                 that are not sent in the context of a GTP
+                                                 tunnel, this action is equivalent to
+                                                 forward.
+             - forward-esi-l2               (8): A packet matching the entry will be
+                                                 forwarded to ESI identified first appliance
+                                                 in Nuage service chain using EVPN-resolved
+                                                 VXLAN tunnel in the specified VPLS service.
+             - forward-esi-l3               (9): A packet matching the entry will be
+                                                 forwarded to ESI/SF-IP identified first
+                                                 appliance in Nuage service chain using
+                                                 EVPN-resolved VXLAN tunnel over the
+                                                 configured VAS interface in the specified
+                                                 VPRN service.
+             - of-packet-in                (10): Packets are sent to controller configured
+                                                 for this H-OFS instance on a dedicated
+                                                 packet-in channel part of the main or
+                                                 auxiliary connection.
+             - drop-ttl                    (12): A packet matching the entry will be dropped
+                                                 only if 'Time-to-live' field of packet's
+                                                 IPv4 header or 'Hop-Limit' field of packet's
+                                                 IPv6 header meets the configured condition.
+             - drop-packet-length          (13): A packet matching the entry will be dropped
+                                                 only if 'Total Length' field of packet's
+                                                 IPv4 header or 'Payload Length' field of
+                                                 packet's IPv6 header field meets the
+                                                 configured condition.
+             - forward-router              (14): A packet matching the entry will be
+                                                 forwarded in the configured routing context.
+             - forward-next-hop            (15): A packet matching the entry will be
+                                                 forwarded in the routing context of the
+                                                 incoming interface using direct or indirect
+                                                 IP address in the routing lookup.
+             - forward-next-hop-router     (16): A packet matching the entry will be
+                                                 forwarded in the configured routing context
+                                                 using direct or indirect IP address in the
+                                                 routing lookup.
+             - forward-next-hop-interface  (17): A packet matching the entry will be
+                                                 forwarded using the configured local
+                                                 interface.
+             - forward-lsp                 (18): A packet matching the entry will be
+                                                 forwarded using the specified LSP.
+             - forward-sdp                 (19): A packet matching the entry will be
+                                                 forwarded using the configured SDP.
+             - forward-sap                 (20): A packet matching the entry will be
+                                                 forwarded using the configured SAP.
+             - forward-redirect-policy     (21): A packet matching the entry will be
+                                                 forwarded using forward next-hop or forward
+                                                 next-hop router and the IP address of
+                                                 destination selected by the configured
+                                                 redirect policy.  If no destination is
+                                                 selected packets are subject to action
+                                                 forward.
+             - rate-limit                  (22): Traffic matching the entry will be limited
+                                                 to the value specified by the object
+                                                 rate-limit.
+             - tcp-mss-adjust              (23): The value of TCP Maximum Segment Size (MSS)
+                                                 option of packets matching the entry will be
+                                                 set to the value specified by
+                                                 TIMETRA-VRTR-MIB.mib::tmnxVrtrMssAdjSegmentSize
+                                                 if the value of the option exceeds that
+                                                 value or the option is not present at all.
+             - remark-dscp                 (24): DSCP value of packets matching the entry
+                                                 will be remarked.
+             - rate-limit-packet-length    (25): Packet rate of packets matching the entry
+                                                 and having value of 'Total Length' field of
+                                                 packet's IPv4 header or value of 'Payload
+                                                 Length' field of packet's IPv6 header
+                                                 meeting the configured condition is limited
+                                                 to value specified by rate-limit.
+             - rate-limit-ttl              (26): Packet rate of packets matching the entry
+                                                 and having value of 'Time-to-live' field of
+                                                 packet's IPv4 header or value of 'Hop-Limit'
+                                                 field of packet's IPv6 header
+                                                 meeting the configured condition is limited
+                                                 to value specified by rate-limit.";
+        type enumeration {
+            enum drop                        { value 1; }
+            enum forward                     { value 2; }
+            enum http-redirect               { value 4; }
+            enum nat                         { value 5; }
+            enum reassemble                  { value 6; }
+            enum gtp-local-breakout          { value 7; }
+            enum forward-esi-l2              { value 8; }
+            enum forward-esi-l3              { value 9; }
+            enum openflow-packet-in          { value 10; }
+            enum drop-ttl                    { value 12; }
+            enum drop-packet-length          { value 13; }
+            enum forward-router              { value 14; }
+            enum forward-next-hop            { value 15; }
+            enum forward-next-hop-router     { value 16; }
+            enum forward-next-hop-interface  { value 17; }
+            enum forward-lsp                 { value 18; }
+            enum forward-sdp                 { value 19; }
+            enum forward-sap                 { value 20; }
+            enum forward-redirect-policy     { value 21; }
+            enum rate-limit                  { value 22; }
+            enum tcp-mss-adjust              { value 23; }
+            enum remark-dscp                 { value 24; }
+            enum rate-limit-packet-length    { value 25; }
+            enum rate-limit-ttl              { value 26; }
+        }
+    }
+
+    typedef ipvx-filter-entry-extended-action {
+        description
+            "Extended action to be taken on a packet:
+             - remark-dscp                 (24): DSCP value of packets matching the entry
+                                                 will be remarked.";
+        type enumeration {
+            enum none         { value 0; }
+            enum remark-dscp  { value 24; }
+        }
+    }
+
+    typedef filter-downloaded-action {
+        description
+         "Filter action downloaded to IOM:
+          - none          (1): No filter entry action is downloaded to IOM.
+                               Entry is inactive or filter is not applied.
+          - primary       (2): Primary filter entry action is downloaded to IOM.
+          - secondary     (3): Secondary filter entry action is downloaded to
+                               IOM.
+          - forward       (4): Neither primary nor secondary action is downloaded
+                               to IOM. Action forward is downloaded to IOM.
+          - drop          (5): Neither primary nor secondary action is downloaded
+                               to IOM. Action drop is downloaded to IOM.
+          - not-displayed (6): Field is not supported for configured action.";
+        type enumeration {
+            enum none          { value 1; }
+            enum primary       { value 2; }
+            enum secondary     { value 3; }
+            enum forward       { value 4; }
+            enum drop          { value 5; }
+            enum not-displayed { value 6; }
+        }
+    }
+
+    typedef filter-pbr-down-action-ovr {
+        description
+         "The textual convention TFilterPbrDownActionOvr specifies an override of
+          default PBR down action:
+          - none                  (0): default PBR down action is applied to
+                                       packets matching the filter entry.
+                                       Default PBR down action is either drop
+                                       or forward based on PBR action type.
+          - drop                  (1): packets matching the filter entry are
+                                       dropped.
+          - forward               (2): packets matching the filter entry are
+                                       forwarded.
+          - filter-default-action (3): packets matching the filter entry are
+                                       handled according to filter default action
+                                       configured using tIPFilterDefaultAction
+                                       for IP filter, tIPv6FilterDefaultAction
+                                       for IPv6 filter and
+                                       tMacFilterDefaultAction for MAC filter.";
+        type enumeration {
+            enum none                  { value 0; }
+            enum drop                  { value 1; }
+            enum forward               { value 2; }
+            enum filter-default-action { value 3; }
+        }
+    }
+
+    typedef filter-entry-action-id {
+        description
+            "Specifies the unique identifier and also the priority of the action
+            within the filter entry.";
+        type enumeration {
+            enum primary   { value 1; }
+            enum secondary { value 2; }
+        }
+    }
+
+    typedef primary-or-secondary {
+        description
+            "Specifies the unique identifier and also the priority of the action
+            within the filter entry.";
+        type enumeration {
+            enum primary   { value 1; }
+            enum secondary { value 2; }
+        }
+    }
+
+    typedef nat-type {
+        description
+            "Specifies the NAT type.";
+        type enumeration {
+            enum dslite    { value 3; }
+            enum nat64     { value 4; }
+        }
+    }
+
+    typedef filter-entry-action {
+        type enumeration {
+            enum drop           { value 1; }
+            enum forward        { value 2; }
+            enum http-redirect  { value 4; }
+            enum forward-esi-L2 { value 8; }
+            enum forward-sdp    { value 19; }
+            enum forward-sap    { value 20; }
+            enum rate-limit     { value 22; }
+        }
+        description
+         "Action to take on a packet matching the filter entry:
+          - drop                (1): A packet matching the entry will be dropped.
+          - forward             (2): A packet matching the entry will be forwarded
+                                     using regular routing.
+          - http-redirect       (4): An HTTP GET packet matching the entry is
+                                     forwarded to CPM for HTTP captive portal
+                                     processing.
+          - forward-esi-L2      (8): A packet matching the entry will be forwarded
+                                     to ESI identified first appliance in Nuage
+                                     service chain using EVPN-resolved VXLAN
+                                     tunnel in the specified VPLS service.
+          - forward-sdp        (19): A packet matching the entry will be forwarded
+                                     using the configured SDP.
+          - forward-sap        (20): A packet matching the entry will be forwarded
+                                     using the configured SAP.
+          - rate-limit         (22): Traffic matching the entry will be limited to
+                                     the value specified by the object
+                                     tIPvXFltrEntryActRateLimit.";
+    }
+
+    typedef filter-entry-row-status {
+        description
+            "Entry row status";
+        type enumeration {
+            enum active   { value 1; }
+            enum inactive { value 2; }
+        }
+    }
+
+    typedef filter-esi {
+        description
+         "Ethernet Segment Identifier (ESI) as defined in IETF draft
+          BGP MPLS Based Ethernet VPN. ESI is a unique non-zero identifier that
+          identifies an Ethernet Segment. ESI is encoded as a ten octets integer
+          in line format with the most significant octet sent first.
+          The following two ESI values are reserved:
+              - ESI 0 denotes a single-homed CE.
+              - ESI {0xFF} (repeated 10 times) is known as MAX-ESI.
+
+          In a network with managed and not-managed CEs, the ESI has the
+          following format:
+
+                       +---+---+---+---+---+---+---+---+---+---+
+                       | T |          ESI Value                |
+                       +---+---+---+---+---+---+---+---+---+---+
+
+           Where:
+           T (ESI Type) is a 1-octet field (most significant octet) that
+           specifies the format of the remaining nine octets (ESI Value).
+           ESI type can be one of the values 0x00-0x05.";
+        type binary {
+            length "10";
+        }
+    }
+
+    typedef rate-limit {
+        description
+         "A limiting rate in kilobits-per-second for traffic matching
+          the filter entry. The value -1 means max rate.";
+        type int32 {
+            range "-1..2000000000";
+        }
+    }
+
+    typedef pbr-target-status {
+        description
+         "Status of PBR target :
+          - unknown           (0): Status of PBR target is not tracked
+          - does-not-exist    (1): The system does not know the PBR target.
+          - up                (2): PBR target is known by the system and can be
+                                   used for forwarding the traffic.
+          - down              (3): PBR target is known by the system but can't be
+                                   used for forwarding the traffic.";
+        type enumeration {
+            enum unknown        { value 0; }
+            enum does-not-exist { value 1; }
+            enum up             { value 2; }
+            enum down           { value 3; }
+        }
+    }
+
+    typedef cpm-filter-shutdown {
+        // Deliberately NOT a shutdown, as the cpm-filter has the weird situation where
+        // we have a single db-mo (cpm-filter) with 3 shutdown fields
+        // ([ip|ipv6|mac]-filter shutdown, but these filter containers are nmi-containers and
+        // thus the 3 shutdown end up in the cpm-filter).
+        // This confuses the activation manager, so (for now) we simply make them look like
+        // a shutdown without actually being one
+        type boolean;
+    }
+
+    typedef filter-egress-pbr {
+        description
+            "disable         - 0: policy based routing has no effect when applied
+                              on egress
+             enable          - 1: egress policy based routing is allowed and default
+                              load-balancing based on hash of source/destination
+                              address of the packet is applied
+             enable-with-l4lb - 2: egress policy based routing is allowed and
+                              l4-load-balancing is applied (if available include
+                              TCP/UDP port in hash.";
+        type enumeration {
+            enum disable          { value 0; }
+            enum enable           { value 1; }
+            enum enable-with-l4lb { value 2; }
+        }
+     }
+
+    typedef ip-match-protocol {
+        description
+            "IP protocol number. Well known protocol numbers include ICMP(1),
+             TCP(6), UDP(17).
+
+             -1 means value not set.
+             -2 indicates protocol wildcard for UDP and TCP.";
+        type int32 {
+            range -2|-1|0..255;
+        }
+        reference
+            "http://www.iana.org/assignments/protocol-numbers";
+    }
+
+    typedef item-match {
+        description
+            "when set to off, the item is not matched.
+             when set to false, packets without the item match the filter.
+             when set to true, packets with the item match the filter.";
+        type enumeration {
+            enum off    { value 1; }
+            enum false  { value 2; }
+            enum true   { value 3; }
+        }
+    }
+
+    typedef port-selector {
+        description
+            "This object specifies how the source-port and destination-port 
+            filter objects are combined to form the filter match
+            criterion.
+            - If the selector takes the value and-port(0) then the source-port
+            and destination-port objects (if set) are combined into 1 filter
+            condition that fires if both conditions are met (i.e. a logical
+            and-operation of both is done). If one of them is not set (default
+            values) then only the other one is taken into account for the match
+            condition.
+            - If the selector takes the value or-port(1) then the source-port
+            objects are used as match condition for either source-port or
+            destination-port (i.e. a logical or-operation is done). In this case,
+            non-default values must be set for the source-port objects. In this
+            case the destination-port objects are (silently) copied from the
+            source-port objects by the system; any other values set by the user
+            are overwritten by the system.";
+        type enumeration {
+            enum and-port { value 0; }
+            enum or-port  { value 1; }
+        }
+    }
+
+    typedef ip-option-match {
+        description
+            "IP packet options octet. Explanation of the octet bits:
+
+             IP OPTION NUMBERS
+
+             The Internet Protocol (IP) has provision for optional header fields
+             identified by an option type field.  Options 0 and 1 are exactly one
+             octet which is their type field.  All other options have their one
+             octet type field, followed by a one octet length field, followed by
+             length-2 octets of option data.  The option type field is sub-divided
+             into a one bit copied flag, a two bit class field, and a five bit
+             option number.  These taken together form an eight bit value for the
+             option type field.  IP options are commonly refered to by this value.
+
+
+             Copy Class Number Value Name                Reference
+             ---- ----- ------ ----- ------------------------------- ---------
+             0     0      0     0 EOOL   - End of Options List    [RFC791,JBP]
+             0     0      1     1 NOP    - No Operation           [RFC791,JBP]
+             1     0      2   130 SEC    - Security                  [RFC1108]
+             1     0      3   131 LSR    - Loose Source Route     [RFC791,JBP]
+             0     2      4    68 TS     - Time Stamp             [RFC791,JBP]
+             1     0      5   133 E-SEC  - Extended Security         [RFC1108]
+             1     0      6   134 CIPSO  - Commercial Security           [???]
+             0     0      7     7 RR     - Record Route           [RFC791,JBP]
+             1     0      8   136 SID    - Stream ID              [RFC791,JBP]
+             1     0      9   137 SSR    - Strict Source Route    [RFC791,JBP]
+             0     0     10    10 ZSU    - Experimental Measurement      [ZSu]
+             0     0     11    11 MTUP   - MTU Probe                 [RFC1191]*
+             0     0     12    12 MTUR   - MTU Reply                 [RFC1191]*
+             1     2     13   205 FINN   - Experimental Flow Control    [Finn]
+             1     0     14   142 VISA   - Expermental Access Control [Estrin]
+             0     0     15    15 ENCODE - ???                      [VerSteeg]
+             1     0     16   144 IMITD  - IMI Traffic Descriptor        [Lee]
+             1     0     17   145 EIP    - Extended Internet Protocol[RFC1385]
+             0     2     18    82 TR     - Traceroute        [RFC1393]
+             1     0     19   147 ADDEXT - Address Extension    [Ullmann IPv7]
+             1     0     20   148 RTRALT - Router Alert              [RFC2113]
+             1     0     21   149 SDB    - Selective Directed Broadcast[Graff]
+             1     0     22   150 NSAPA  - NSAP Addresses          [Carpenter]
+             1     0     23   151 DPS    - Dynamic Packet State        [Malis]
+             1     0     24   152 UMP    - Upstream Multicast Pkt. [Farinacci]
+
+             [Note, an asterisk (*) denotes an obsoleted IP Option Number.]";
+        reference
+            "http://www.iana.org/assignments/ip-parameters";
+        type int32 {
+            range 0..255;
+        }
+    }
+
+    typedef match-operator {
+        description
+            "The operator specifies the manner in which a couple of other
+             leaf are supposed to be used.
+
+             Operator        Value1               Value2
+             ----------------------------------------------------
+             none(0)         Any(0)               Any(0)
+             eq(1)           Specified Value      Any(0)
+             range(2)        Starting Value       Ending Value
+             lt(3)           Specified Value      Any(0)
+             gt(4)           Specified Value      Any(0)
+
+             'Any(0)' specifies that, the leaf can accept any values
+             but would default to 0. ";
+        type enumeration {
+            enum none      { value 0; }
+            enum eq        { value 1; }
+            enum range     { value 2; }
+            enum lt        { value 3; }
+            enum gt        { value 4; }
+        }
+    }
+
+    typedef redirect-policy-test-last-action {
+        description
+            "This typedef is used to indicate the last impact of a test
+            assigned to a destination of a redirect policy on an operational state
+            of the destination.
+
+            Value 'enable' indicates the operational state of the destination
+            has been set to 'inService'.
+
+            Value 'disable' indicates the operational state of the destination
+            has been set to 'outOfService'.
+
+            Value 'none' indicates the operational state of the destination
+            has not been changed yet.";
+        type enumeration {
+            enum enable  { value 1; }
+            enum disable { value 2; }
+            enum none    { value 3; }
+        }
+    }
+
+    typedef redirect-policy-test-response-action  {
+        description
+            "This typedef is used to indicate the action of a test assigned to a
+            destination of a redirect policy on a operational priority of the 
+            destination.
+
+            Value 'increase' indicates that if the response passes the test
+            the operational priority of the destination will be increased.
+
+            Value 'decrease' indicates that if the response passes the test
+            the operational priority of the destination will be decreased.
+
+            Value 'disable' indicates the test wont have impact on the
+            operational priority of the destination.";
+        type enumeration {
+            enum increase { value 1; }
+            enum decrease { value 2; }
+            enum disable  { value 3; }
+           }
+    }
+
+}
