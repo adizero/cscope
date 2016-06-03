@@ -719,7 +719,7 @@ findinit(char *pattern)
 			return(NOTSYMBOL);
 		}
 		while (*++s != '\0') {
-			if (!isalnum((unsigned char)*s) && *s != '_') {
+			if (!isalnum((unsigned char)*s) && *s != '_' && *s != '-') {
 				return(NOTSYMBOL);
 			}
 		}

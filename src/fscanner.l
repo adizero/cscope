@@ -33,7 +33,6 @@
 
 
 #define DEBUG_LOGS 0
-#define SIMPLE_C_FUNCTION_TOKENS 1
 
 
 /*	cscope - interactive C symbol cross-reference
@@ -86,6 +85,7 @@ static	int	initializerbraces;	/* data initializer outer brace count */
 static	BOOL	lex;			/* lex file */
 static	BOOL	mib;			/* mib file */
 static	BOOL	tcl;			/* tcl file */
+static	BOOL	yang;			/* yang file */
 static	int	miflevel = IFLEVELINC;	/* maximum #if nesting level */
 static	int	*maxifbraces;		/* maximum brace count within #if */
 static	int	*preifbraces;		/* brace count before #if */
@@ -106,6 +106,7 @@ static	int	eat_incomplete;  /* for incomplete declarations of e/s/u */
 static  BOOL one_shot_not_global_flag;  /* resets to false after one usage */
 static  BOOL one_shot_typedef;  /* only one typedef new identifier after one typedef keyword, unless e/s/u */
 static  BOOL mib_was_in_dquote;  /* used for .mib files only (.if,.else,.endif blocks inside comments) */
+static  BOOL yang_was_in_dquote;  /* used for .yang files only (.if,.else,.endif blocks inside comments) */
 
 #define MAX_ESU_IDENT_LEN 255
 char stored_esu_ident[MAX_ESU_IDENT_LEN+1];  //max length of e/s/u identifier
@@ -166,6 +167,11 @@ mib_comment "--"[^\n]*\n
 tcl_identifier [a-zA-Z_$:.][\-a-zA-Z_0-9$:.]*
 tcl_comment "#"[^\n]*\n
 
+yang_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
+yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type")
+yang_global_type ("typedef"|"module"|"container"|"leaf"|{yang_sros_global_type})
+yang_comment "//"[^\n]*\n
+
 /*
 c_function_definition {ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]
 c_function_call {ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*
@@ -182,7 +188,7 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 %o 7000
 
 /* exclusive start conditions. not available in AT&T lex -> use flex! */
-%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE TCL TCL_IN_DQUOTE
+%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE YANG YANG_IN_DQUOTE TCL TCL_IN_DQUOTE
 
 %%
 
@@ -560,6 +566,188 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 
 \"	{	
     BEGIN(TCL);
+    goto more;
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<YANG>{
+
+^{ws}*{yang_global_type}{ws}*{yang_identifier}{ws}*  {
+    trac("!!!!YANG GLOBAL TYPE\n");
+    my_yymore();
+    trac("!!!!YANG token (line %d): %d - %s\n", myylineno, first, my_yytext);
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    /*
+    BOOL ictl_class = NO;
+    BOOL ictl_fdef = NO;
+    if (strncmp(my_yytext, "itcl::class", strlen("itcl::class") == 0))
+    {
+        ictl_class = YES;
+    }
+    else
+    {
+        if (strncmp(my_yytext, "itcl::body", strlen("itcl::body") == 0))
+        {
+            ictl_fdef = YES;
+        }
+    }
+    */
+
+    /*first = 0;*/
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+        /*trac("!!!!YANG first: %d\n", first);*/
+        first++;
+    }
+    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t') {
+        /*trac("!!!!YANG first: %d\n", last);*/
+        first++;
+    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+        /*trac("!!!!YANG first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        /*trac("!!!!YANG last: %d\n", last);*/
+        last++;
+    }
+    yyless(last);
+    yy_set_bol(0);
+    
+    my_yyleng = last;
+    trac("!!!!YANG token (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
+   
+    /*yyless(0);
+    yy_set_bol(0);*/
+    return(FCNDEF);
+}
+
+^{ws}*{yang_comment}  {
+    trac("!!!!YANG WHOLE LINE COMMENT\n");
+    ++myylineno;
+    lineno = myylineno;
+}
+
+"//".*\n? {
+    trac("!!!!YANG PART LINE COMMENT\n");
+    goto eol;
+}
+
+
+^{yang_identifier} {
+    trac("!!!!YANG0 IDENTIFIER\n");
+    my_yymore();
+    trac("!!!!YANG0 token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        trac("!!!!YANG0 last: %d\n", last);
+        last++;
+    }
+    my_yyleng = last;
+    trac("!!!!YANG0 token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    return(IDENT);
+}
+
+\\\" { /*escaped " - ignore */
+    goto more;
+}
+
+\"		{	/* string constant */
+            BEGIN(YANG_IN_DQUOTE);
+            goto more;
+            /* NOTREACHED */
+        }
+
+({ws}+|{ws}*\({ws}*){yang_identifier} {
+    trac("!!!!YANG IDENTIFIER\n");
+    my_yymore();
+    trac("!!!!YANG token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
+    //first = 1;
+    /*skip over previous new line ?, TODO only if not first line ?*/
+    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(') {
+        /*trac("!!!!YANG first: %d\n", last);*/
+        first++;
+    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(')) {
+        /*trac("!!!!YANG first: %d\n", first);*/
+        first++;
+    }
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        if (my_yytext[last] == ':')
+        {
+            if (last+1 < my_yyleng)
+            {
+                first = last+1;
+            }
+        }
+        /*trac("!!!!YANG last: %d\n", last);*/
+        last++;
+    }
+    my_yyleng = last;
+    trac("!!!!YANG token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    return(IDENT);
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<YANG_IN_DQUOTE>{
+
+\\\" { /*escaped " - ignore */
+    goto more;
+}
+
+\"	{	
+    BEGIN(YANG);
     goto more;
 }
 
@@ -1440,6 +1628,7 @@ initscanner(char *srcfile)
 	initializerbraces = -1;	/* data initializer outer brace count */
 	lex = NO;		/* lex file */
     mib = NO;		/* mib file */
+    yang = NO;		/* yang file */
 	parens = 0;		/* unmatched left parenthesis count */
 	ppdefine = NO;		/* preprocessor define statement */
 	pseudoelif = NO;	/* pseudo-#elif */
@@ -1495,7 +1684,12 @@ initscanner(char *srcfile)
 			}
 			break;
 		case 'y':
-			if (strcmp(s, "y") == 0) {	/* yacc */
+			if (strcmp(s, "yang") == 0) {	/* yang */
+                yang = YES;
+                yang_was_in_dquote = NO;
+                BEGIN(YANG);
+			}
+			else if (strcmp(s, "y") == 0) {	/* yacc */
 				global = NO;
 			}
 			break;
