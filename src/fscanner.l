@@ -169,7 +169,7 @@ tcl_comment "#"[^\n]*\n
 
 yang_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
 yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type")
-yang_global_type ("typedef"|"module"|"container"|"leaf"|{yang_sros_global_type})
+yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"key"|"grouping"|{yang_sros_global_type})
 yang_comment "//"[^\n]*\n
 
 /*
@@ -610,6 +610,8 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
         }
     }
     */
+
+	/* TODO recognize module/submodule + imports to generate global def (maybe more than one at once) and identifiers */
 
     /*first = 0;*/
     while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
