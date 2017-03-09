@@ -1,0 +1,4407 @@
+submodule filter {
+
+    belongs-to root { prefix "root"; }
+
+    import types-filter       { prefix "types-filter"; }
+    import ietf-yang-types    { prefix "yang"; }
+    import types-qos          { prefix "types-qos"; }
+    import types-services     { prefix "types-services"; }
+    import types-sros         { prefix "types-sros"; }
+    import sros-legacy-builtins { prefix "sros-legacy"; }
+    import sros-mci-builtins  { prefix "sros-mci"; }
+    import sros-yang-builtins { prefix "sros"; }
+    import sros-red-builtins  { prefix "sros-red"; }
+
+    sros:content-summary "line card ACL filters";
+
+    sros:file-last-change "$Date$";
+
+    sros:error-module-include "agent/agent_types.h";
+    sros:error-module-include "agent/filter_err_msgs.h";
+    sros:error-module-include "agent/sia_common_error_codes.h";
+    sros:default-error-module FILTER;
+
+    sros-red:include "filter/filter_red.h";
+
+    container filter {
+        sros:external-parent "/";
+
+        description "Configuration statements for filters.";
+
+        list redirect-policy {
+            sros-mci:struct-name redirect-policy;
+            description "Filter redirect policy configuration";
+
+            sros-legacy:auto-delete-children "destination";
+
+            key redirect-policy;
+
+            uses redirect-policy-key;
+            uses redirect-policy-config;
+            uses redirect-policy-state;
+
+            list destination {
+                sros-mci:struct-name destination;
+
+                description
+                    "Information pertaining to Redirect Policy destinations
+                     configured on this system";
+
+                sros-legacy:auto-delete-children "ping-test";
+                sros-legacy:auto-delete-children "snmp-test";
+                sros-legacy:auto-delete-children "url-test";
+                sros-legacy:auto-delete-children "unicast-rt-test";
+
+                key destination-address;
+
+                uses destination-key;
+                uses destination-config;
+                uses destination-state;
+
+                container ping-test {
+                    presence "Ping-test configuration.";
+                    sros-mci:struct-name ping-test;
+
+                    description
+                        "Filter redirect policy destination ping-test
+                         configuration.";
+
+                    uses ping-test-config;
+                    uses ping-test-state;
+                }
+
+                list snmp-test {
+                    sros-mci:struct-name filter-redirect-policy-snmp-test;
+
+                    description
+                        "Filter redirect policy destination snmp-test
+                         configuration.";
+
+                    sros-legacy:auto-delete-children "return-value";
+
+                    key test-name;
+
+                    uses filter-redirect-policy-snmp-test-key;
+                    uses filter-redirect-policy-snmp-test-config;
+                    uses filter-redirect-policy-snmp-test-state;
+
+                    list return-value {
+                        sros:cli-leaf;
+                        sros-mci:struct-name filter-redirect-policy-snmp-test-return-value;
+
+                        description
+                            "Filter redirect policy destination snmp-test
+                            return-value configuration.";
+
+                        key response-id;
+
+                        uses filter-redirect-policy-snmp-test-return-value-key;
+                        uses filter-redirect-policy-snmp-test-return-value-config;
+                    }
+                }
+
+                list url-test {
+                    sros-mci:struct-name url-test;
+                    description
+                        "Filter redirect policy destination url-test
+                         configuration.";
+
+                    sros-legacy:auto-delete-children "return-code";
+
+                    key url-test;
+
+                    uses url-test-key;
+                    uses url-test-config;
+                    uses url-test-state;
+
+                    list return-code {
+                        sros-mci:struct-name return-code;
+                        description
+                            "Filter redirect policy destination url-test
+                             return-code configuration.";
+
+                        key "low-return-code high-return-code";
+
+                        uses return-code-key;
+                        uses return-code-config;
+                    }
+
+                }
+
+                container unicast-rt-test {
+                    presence "Unicast-rt-test configuration.";
+                    sros-mci:struct-name unicast-rt-test;
+
+                    description
+                        "Filter redirect policy destination unicast-rt-test
+                         configuration.";
+
+                     uses unicast-rt-test-state;
+                }
+            }
+        }
+
+        list log {
+            sros-mci:struct-name log-info;
+            description "Filter log";
+
+            key log-id;
+
+            uses log-info-auto-create;
+            uses log-info-key;
+            uses log-info-config;
+        }
+
+        container match-list {
+            description "Configuration statements for filters match-list.";
+
+            sros-legacy:auto-delete-children "ip-prefix-list";
+            sros-legacy:auto-delete-children "ipv6-prefix-list";
+            sros-legacy:auto-delete-children "port-list";
+
+            list ip-prefix-list {
+                sros-mci:struct-name filter-ip-prefix-list;
+                description "Specifies a filter match list IP prefix lists.";
+
+                sros-legacy:auto-delete-children "apply-path-bgp-peers";
+                sros-legacy:auto-delete-children "prefix";
+
+                key "prefix-list-name";
+
+                uses ipvx-prefix-list-key;
+                uses ipvx-prefix-list-config;
+
+                container apply-path {
+                    sros:nmi-container;
+
+                    description
+                        "Specifies a filter match list IP prefix lists apply-path";
+
+                    list bgp-peers {
+                        sros-mci:struct-name filter-ip-prefix-list-bgp-peers;
+                        description
+                            "Specifies a filter match list IP prefix lists apply-path
+                            bgp-peers.";
+
+                        key "index";
+
+                        uses apply-path-bgp-key;
+                        uses apply-path-bgp-config;
+                    }
+
+                    list ntp-servers {
+                        sros:feature "TIMOS_FEATURE_FLTR_APPLY_PATH_NTP";
+                        sros-mci:struct-name filter-ip-apply-path-ntp-server;
+                        description
+                            "This object specifies a selection criterion.
+
+                            If the IP address of configured NTP server matches a regular expression
+                            specified by this selection criterion then the IP address is added to
+                            the IP prefix list.";
+
+                        sros-red:generate-message {
+                            sros-red:module RED_Module_Filter;
+                            sros-red:table-id RED_FILTER_IP_APPLY_PATH_NTP_SERVERS;
+                            sros-red:use-lock filter_ip_apply_path_ntp;
+                        }
+
+                        key "criterion-index";
+
+                        uses filter-ip-apply-path-ntp-serv-key;
+                        uses filter-ip-apply-path-ntp-serv-config;
+                        uses filter-ip-apply-path-ntp-serv-state;
+
+                    }
+
+                    list sntp-servers {
+                        sros:feature "TIMOS_FEATURE_FLTR_APPLY_PATH_SNTP";
+                        sros-mci:struct-name filter-ip-apply-path-sntp-server;
+                        description
+                            "This object specifies a selection criterion.
+
+                            If IP address of configured SNTP server matches a regular expression
+                            specified by this selection criterion then the IP address is added to
+                            the IP prefix list.";
+
+                        sros-red:generate-message {
+                            sros-red:module RED_Module_Filter;
+                            sros-red:table-id RED_FILTER_APPLY_PATH_SNTP_SERVERS;
+                            sros-red:use-lock filter_apply_path_sntp;
+                        }
+
+                        key "criterion-index";
+
+                        uses filter-ip-apply-path-sntp-serv-key;
+                        uses filter-ip-apply-path-sntp-serv-config;
+                        uses filter-ip-apply-path-sntp-serv-state;
+                    }
+                }
+
+                list prefix {
+                    sros-mci:struct-name filter-ip-prefix-list-prefix;
+                    description
+                        "Specifies a filter match list IP prefix lists prefix.";
+
+                    key "prefix";
+
+                    uses ipvx-prefix-key;
+                }
+            }
+
+            list ipv6-prefix-list {
+                sros-mci:struct-name filter-ipv6-prefix-list;
+                description
+                    "Specifies a filter match list IPv6 prefix lists.";
+
+                sros-legacy:auto-delete-children "apply-path-bgp-peers";
+                sros-legacy:auto-delete-children "prefix";
+
+                key "prefix-list-name";
+
+                uses ipvx-prefix-list-key;
+                uses ipvx-prefix-list-config;
+
+                container apply-path {
+                    sros:nmi-container;
+                    description
+                        "Specifies a filter match list IPv6 prefix lists apply-path";
+
+                    list bgp-peers {
+                        sros-mci:struct-name filter-ipv6-prefix-list-bgp-peers;
+                        description
+                            "Specifies a filter match list IP prefix lists apply-path
+                            bgp-peers.";
+
+                        key "index";
+
+                        uses apply-path-bgp-key;
+                        uses apply-path-bgp-config;
+                    }
+
+                    list ntp-servers {
+                        sros:feature "TIMOS_FEATURE_FLTR_APPLY_PATH_NTP";
+                        sros-mci:struct-name filter-ipv6-apply-path-ntp-server;
+                        description
+                            "This object specifies a selection criterion.
+
+                            If IP address of configured NTP server matches a regular expression
+                            specified by this selection criterion then IPv6 address is added to the
+                            IPv6 prefix list.";
+
+                        sros-red:generate-message {
+                            sros-red:module RED_Module_Filter;
+                            sros-red:table-id RED_FILTER_IPV6_APPLY_PATH_NTP_SERVERS;
+                            sros-red:use-lock filter_ipv6_apply_path_ntp;
+                        }
+
+                        key "criterion-index";
+
+                        uses filter-ipv6-apply-path-ntp-serv-key;
+                        uses filter-ipv6-apply-path-ntp-serv-config;
+                        uses filter-ipv6-apply-path-ntp-serv-state;
+
+                    }
+                }
+
+               list prefix {
+                    sros-mci:struct-name filter-ipv6-prefix-list-prefix;
+                    description
+                        "Specifies a filter match list IPv6 prefix lists prefix.";
+
+                    key "prefix";
+
+                    uses ipvx-prefix-key;
+                }
+            }
+
+            list port-list {
+                sros-mci:struct-name port-list;
+                description
+                    "Information pertaining to match-list
+                    port-list configured on this system";
+
+                sros-legacy:auto-delete-children "port";
+
+                key port-list-name;
+
+                uses port-list-key;
+                uses port-list-config;
+
+                list port {
+                    sros-mci:struct-name match-list-port-list-port;
+                    description
+                        "Information pertaining to match-list
+                         port-list port configured on this system.";
+
+                    key "low-port high-port";
+
+                    uses match-list-port-list-port-key;
+                }
+            }
+        }
+
+        list ip-filter {
+            sros-mci:struct-name ip-filter;
+            description "IP filter policies";
+
+            sros-legacy:auto-delete-children "entry";
+
+            key filter-id;
+
+            uses ipvx-filter-key;
+            uses ipvx-filter-config;
+            uses ipvx-filter-state;
+
+            list entry {  //request translator needed
+                sros-mci:struct-name ip-filter-entry;
+
+                description
+                    "Information about a particular IP filter entry";
+
+                sros-legacy:do-not-deliver-default-values-on-create;
+                sros-legacy:auto-delete-children "action";
+
+                key entry-id;
+
+                uses ipvx-filter-entry-key;
+                uses ip-filter-entry-config;
+
+                list action {
+                    sros-mci:struct-name ip-filter-entry-action;
+                    description
+                        "Configure action for the IP-filter entry.";
+
+                    sros:auto-create primary;
+
+                    key priority;
+
+                    uses ipvx-filter-entry-action-key;
+                    uses ip-filter-entry-action-config;
+                    uses ipvx-filter-entry-action-state;
+                }
+            }
+        }
+
+        list ipv6-filter {
+            sros-mci:struct-name ipv6-filter;
+
+            description "IPv6 filter policies";
+
+            sros-legacy:auto-delete-children "entry";
+
+            key filter-id;
+
+            uses ipvx-filter-key;
+            uses ipvx-filter-config;
+            uses ipvx-filter-state;
+
+            list entry {
+                sros-mci:struct-name ipv6-filter-entry;
+
+                description
+                    "Information about a particular IPv6 filter entry";
+
+                sros-legacy:do-not-deliver-default-values-on-create;
+                sros-legacy:auto-delete-children "action";
+
+                key entry-id;
+
+                uses ipvx-filter-entry-key;
+                uses ipv6-filter-entry-config;
+
+                list action {
+                    sros-mci:struct-name ipv6-filter-entry-action ;
+                    description
+                        "Configure action for the IPv6-filter entry.";
+
+                    sros:auto-create primary;
+
+                    key priority;
+
+                    uses ipvx-filter-entry-action-key;
+                    uses ipvx-filter-entry-action-state;
+                    uses ipv6-filter-entry-action-config;
+                }
+
+            }
+        }
+
+        list mac-filter {
+            sros-mci:struct-name mac-filter;
+            description "MAC ACL filter policies";
+
+            sros-legacy:auto-delete-children "entry";
+
+            key filter-id;
+
+            uses mac-filter-key;
+            uses mac-filter-config;
+
+            list entry {
+                sros-mci:struct-name mac-filter-entry;
+                description
+                    "Information about a particular MAC Filter entry.
+                     Every MAC Filter can have zero or more MAC Filter match entries.";
+
+                sros-legacy:auto-delete-children "entry-action";
+                sros-legacy:do-not-deliver-default-values-on-create;
+
+                key entry-id;
+
+                uses mac-filter-entry-key;
+
+                uses mac-filter-entry-config;
+
+                list entry-action {
+                    sros-mci:struct-name mac-filter-entry-action;
+
+                    description
+                        "Information pertaining to an action for a particular MAC filter entry.
+                         For each filter entry up to two actions can be configured (primary and secondary).";
+
+                    sros-legacy:do-not-deliver-default-values-on-create;
+
+                    sros:auto-create primary;
+
+                    key action-id;
+
+                    uses mac-filter-entry-action-key;
+                    uses mac-filter-entry-action-config;
+                }
+            }
+        }
+
+        container system-filter {
+            description
+                "Information pertaining to active IP and IPv6 system filter policies.";
+
+            list ip {
+                sros-mci:struct-name system-filter-ip;
+                description
+                    "Specifies information pertaining to active IP system filter policy";
+
+                key "filter-id";
+                uses system-filter-ipv4-key;
+            }
+
+            list ipv6 {
+                sros-mci:struct-name system-filter-ipv6;
+                description
+                    "Specifies information pertaining to active IPv6 system filter policy";
+
+                key "filter-id";
+                uses system-filter-ipv6-key;
+            }
+        }
+    }
+
+    // -------------------------- Grouping ---------------------------
+    grouping ipvx-filter-key {
+        leaf filter-id {
+            description
+                "The value of this object uniquely identifies an IP filter.
+                 User-configured filters have values between (1..65535).
+                 Other values are reserved for filters that are created
+                (auto-generated) by the system.";
+            type types-filter:filter-id;
+        }
+    }
+
+    grouping ipvx-filter-config {
+        description
+            "IPvx filter fields.";
+
+        leaf chain-to-system-filter {
+            description
+                "The value of this object specifies whether this filter
+                 policy is chained to the active IPvX system filter policy.
+
+                 The active IPvX system filter policy is defined as a row in
+                 system-filter that have the value of the object filter-type
+                 set to 'fltrtypeselIPvX'.
+
+                 The value 'true' means this filter policy is chained to
+                 the active IPvX system filter policy. The system filter policy's
+                 rules are executed first before any rules of this filter policy
+                 are executed.
+
+                 The value of this object can be set to 'true' only when the
+                 scope of this policy (value of the object 'scope' is 'exclusive(1)'
+                 or 'template(2)'.
+
+                 The value 'false' means this filter policy is not chained to
+                 the system filter policy.";
+            type boolean;
+            default "false";
+        }
+
+        leaf default-action {
+            description
+                "The value of this object specifies the action to be taken for packets
+                 that do not match any of the filter entries. The only allowed values
+                 for this field are drop(1) and forward(2).";
+            type types-filter:filter-default-action;
+            default "drop";
+        }
+
+        leaf description {
+            description
+                "The value of this object specifies a user-provided description
+                 for this filter.";
+            type types-sros:description;
+        }
+
+        leaf filter-name {
+            description
+                "The value of this opbject specifies the name to associate
+                 with this filter.";
+            type types-sros:named-item-64-or-empty;
+            default "";
+        }
+
+        leaf scope {
+            description
+                "The value of this object specifies the scope of this filter
+                 definition.";
+            type types-filter:filter-scope;
+            default "template";
+        }
+
+        container shared-radius-filter-wmark {
+            sros:nmi-container;
+            description "IPvX filter shared radius filter wmark";
+
+            leaf high {
+                description
+                    "The value of this object specifies the number of Radius
+                    Shared Filters that can be dynamically created in the
+                    system before an high watermark notification is generated
+                    by the system.
+                    The value -1 specifies that no notifications are sent.
+                    If any of the watermarks (high or low) is set to -1, both
+                    watermarks will be set to -1 by the system.";
+                type int32 {
+                    range -1|1..8000;
+                }
+                default -1;
+            }
+
+            leaf low {
+                description
+                    "The value of this object specifies the number of Radius
+                    Shared Filters that are still dynamically created in the
+                    system before an high watermark notification is cleared by
+                    the system.
+                    The value -1 specifies that no notifications are sent.
+                    If any of the watermarks (high or low) is set to -1, both
+                    watermarks will be set to -1 by the system.";
+                type int32 {
+                    range -1..8000;
+                }
+                default -1;
+            }
+        }
+
+        container sub-insert-credit-control {
+            sros:nmi-container;
+            description "IPvX filter sub insert credit control";
+
+            leaf count {
+                description
+                    "The value of this object specifies how many filter entries
+                     received from Credit Control can be inserted in the filter.
+
+                     If 'sub-insert-credit-control/start-entry' is set to 0,
+                     then this object will be put to 0 as well. Any change attempts
+                     will be silently discarded in this case.";
+                 type types-filter:entry-id;
+            }
+
+            leaf nbr-inserted {
+                config false;
+                description
+                    "The value of this object indicates how many filter entries
+                     are currently inserted in the filter on request of credit
+                     control.";
+                type uint32;
+            }
+
+            leaf start-entry {
+                description
+                    "The value of this object specifies at what place the filter
+                     entries received from Credit Control for a particular subscriber
+                     host will be inserted in the filter.
+
+                     The area defined here will be dedicated to those entries,
+                     no other entries will be allowed.
+
+                     The value 0 means that no Credit Control provided filter
+                     entries can be inserted in the filter.
+
+                     If 'count' is set to 0, then this object will be put to 0
+                     as well. Any change attempts will be silently discarded in
+                     this case.";
+                type types-filter:entry-id;
+            }
+        }
+
+        container sub-insert-radius {
+            sros:nmi-container;
+            description "IPvX filter sub insert radius";
+
+            leaf count {
+                description
+                    "The value of this object specifies how many host specific
+                     filter entries received from Radius for subscriber hosts
+                     can be inserted in the filter.
+
+                     If 'sub-insert-radius/start-entry' is set to 0, then this
+                     object will be put to 0 as well. Any change attempts will
+                     be silently discarded in this case.";
+                 type types-filter:entry-id;
+            }
+
+            leaf nbr-inserted {
+                config false;
+                description
+                    "The value of this object indicates how many host specific
+                     filter entries are currently inserted in the filter on
+                     request of RADIUS.";
+                type uint32;
+            }
+
+            leaf start-entry {
+                description
+                    "The value of this object specifies at what place the
+                     filter entries received from Credit Control for a
+                     particular subscriber host will be inserted in the filter.
+
+                     The area defined here will be dedicated to those entries,
+                     no other entries will be allowed.
+
+                     The value 0 means that no Credit Control provided filter
+                     entries can be inserted in the filter.
+
+                     If 'sub-insert-radius/count' is set to 0, then this object
+                     will be put to 0 as well. Any change attempts will be
+                     silently discarded in this case.";
+                type types-filter:entry-id;
+            }
+        }
+
+        container sub-insert-shared-pccrule {
+            sros:nmi-container;
+            description "IPvX filter sub insert shared pccrule";
+
+            leaf count {
+                description
+                    "The value of this object specifies how many flow-rule
+                    filter entries that are received from Diameter and that
+                    are shared across several hosts can be inserted in the filter.
+
+                    The range defined here will be reserved for those entries;
+                    no other entries will be allowed in this range.
+
+                    The value 0 means that no flow-rule filter entries can be
+                    inserted in the filter by Diameter.
+
+                    If 'sub-insert-shared-pccrule/start-entry' is set to 0 then
+                    'count' is also set to 0 by the system.
+
+                    Note that the range reserved for shared flow-rule entries
+                    must not overlap with that of either
+                    sub-insert-radius/start-entry/count,
+                    sub-insert-credit-control/start-entry/count, or
+                    sub-insert-shared-radius/start-entry/count";
+                 type types-filter:entry-id;
+            }
+
+            leaf nbr-inserted {
+                config false;
+                description
+                    "The value of this object indicates how many flow-rule
+                    filter entries received from Diameter have been inserted
+                    in this filter";
+                type uint32;
+            }
+
+            leaf start-entry {
+                description
+                    "The value of this object specifies at what place the
+                    flow-rule filter entries that are received from Diameter
+                    and that are shared across several hosts will be inserted
+                    in the filter.
+
+                    The range defined here will be reserved for those entries;
+                    no other entries will be allowed in this range.
+
+                    The value 0 means that no flow-rule filter entries can
+                    be inserted in the filter by Diameter.
+
+                    If 'sub-insert-shared-pccrule/count' is set to 0 then
+                    'start-entry' is also set to 0 by the system.
+
+                    Note that the range reserved for shared flow-rule entries
+                    must not overlap with that of either
+                    sub-insert-radius/start-entry/count,
+                    sub-insert-credit-control/start-entry/count, or
+                    sub-insert-shared-radius/start-entry/count";
+                type types-filter:entry-id;
+            }
+        }
+
+        container sub-insert-shared-radius {
+            sros:nmi-container;
+            description "IPvX filter sub insert shared radius";
+
+            leaf count {
+                description
+                    "The value of this object specifies how many host common
+                    filter entries received from Radius for subscriber hosts
+                    can be inserted in the filter.
+
+                    If 'sub-insert-shared-radius/start-entry' is set to 0,
+                    then this object will be put to 0 as well. Any change
+                    attempts will be silently discarded in this case.";
+                 type types-filter:entry-id;
+            }
+
+            leaf nbr-inserted {
+                config false;
+                description
+                    "The value of this object indicates how many host common
+                    filter entries are currently inserted in the filter on
+                    request of Radius.";
+                type uint32;
+            }
+
+            leaf start-entry {
+                description
+                    "The value of this object specifies at what place the filter
+                    entries received from Radius that are shared between several
+                    hosts (host common rules) will be inserted in the filter.
+
+                    The area defined here will be dedicated to those entries,
+                    no other entries will be allowed.
+
+                    The value 0 means that no Radius provided host common filter
+                    entries can be inserted in the filter.
+
+                    If 'sub-insert-shared-radius/count' is set to 0, then this
+                    object will be put to 0 as well. Any change attempts will
+                    be silently discarded in this case.";
+                type types-filter:entry-id;
+            }
+        }
+
+        container sub-insert-wmark {
+            sros:nmi-container;
+            description "IPvX filter sub insert wmark";
+
+            leaf high {
+                description
+                    "The value of this object specifies the utilization of
+                    the filter ranges for filter entry insertion, at which a
+                    table full alarm will be raised by the agent.
+                    The value 0 indicates that no alarm will be generated.";
+                type int32 {
+                    range 0..100;
+                }
+                default 95;
+            }
+
+            leaf low {
+                description
+                    "The value of this object specifies the utilization of the
+                    filter ranges for filter entry insertion, at which a table
+                    full alarm will be cleared by the agent.";
+                type int32 {
+                    range 0..100;
+                }
+                default 90;
+            }
+        }
+    }
+
+    grouping ipvx-filter-state {
+        leaf nbr-host-shared-filters {
+            config false;
+            description
+                "The value of this object indicates how many filters are
+                 currently created by Radius or Diameter based on this
+                 filter. (Both host shared or flow-rule filters.)";
+            type uint32;
+        }
+    }
+
+    grouping ipv6-filter-entry-config {
+
+        uses ipvx-filter-entry-config;
+
+        container match {
+            sros:nmi-container;
+            description
+                "IPv6 filter entry match configuration";
+
+            leaf ah-ext-hdr {
+                sros-mci:name ah-ext-hdr;
+                description
+                    "If enabled, matches the authentication extension
+                    header (51) as per value of the object.";
+                type types-filter:item-match;
+                default off;
+            }
+
+            container dst-ip {
+                sros:nmi-container;
+                description
+                    "IPv6 filter entry match dst-ip configuration";
+
+                uses ipv6-src-dst-address;
+            }
+
+            leaf esp-ext-hdr {
+                description
+                    "If enabled, matches the encapsulation security payload
+                    extension header (50) as per value of the object.";
+                type types-filter:item-match;
+                default off;
+            }
+
+            container flow-label {
+                sros:nmi-container;
+                description
+                    "IPv6 filter entry match flow-label configuration";
+
+                 leaf flow-label {
+                     sros-mci:name flow-label;
+                    description
+                        "If different from -1 the value of this object
+                         specifies the flow label to be used as a match
+                         criterion.";
+                     type int32 {
+                        range -1|0..1048575;
+                     }
+                     default -1;
+                 }
+
+                 leaf mask {
+                    sros-mci:name mask;
+                    description
+                        "The value of this object specifies the flow label
+                        mask value for this policy IP Filter entry.
+
+                        The mask is ANDed with the received flow label to
+                        match the value of the object flow-label.
+
+                        The value is only significant if the value of the
+                        object flow-label is different from -1.";
+                    type uint32 {
+                        range 0..1048575;
+                    }
+                    default 1048575;
+                 }
+            }
+
+           leaf fragment {
+                description
+                    "If not default, matches fragmented/unfragmented packets as
+                    per value of the object.";
+                type enumeration {
+                    enum off            { value 1; }
+                    enum false          { value 2; }
+                    enum true           { value 3; }
+                    enum first-only     { value 4; }
+                    enum non-first-only { value 5; }
+                }
+                default off;
+            }
+
+            leaf hop-by-hop-opt {
+                description
+                    "If Enabled, matches a Hop-By-Hop options Extension
+                     Header as per value of the object.";
+                type types-filter:item-match;
+                default off;
+           }
+
+            leaf next-header {
+                description
+                    "IPv6 next header to match. Set to -1 to disable matching
+                     IPv6 next header. If the next header is changed the
+                     next header specific parameters are reset. For instance
+                     if next header is changed from TCP to UDP, then the
+                     objects tcp-syn and tcp-ack will be turned off.
+                     Because the match criteria only pertains to the last
+                     next-header, the following values are not accepted:
+                     0, 43, 44, 50, 51, and 60.";
+                type types-filter:ipv6-match-protocol;
+                default none;
+                sros:error SIA_WRONG_VALUE {
+                    sros:if "$this = [0|43|44|50|51|60]";
+                    sros:reason wrong-value;
+                }
+            }
+
+           leaf routing-type0 {
+                description
+                    "If enabled, matches a routing extension header as
+                    per the value of the object.";
+                 type types-filter:item-match ;
+                 default off;
+            }
+
+            container src-ip {
+                sros:nmi-container;
+                description
+                    "IPv6 filter entry match src-ip configuration";
+
+                uses ipv6-src-dst-address;
+            }
+
+            uses ipvx-filter-entry-match;
+        }
+    }
+
+    grouping ipvx-filter-entry-key {
+        leaf entry-id {
+            description
+                "This is the secondary index for the entry. Both Ipv4 and IPv6
+                 filters can have multiple entries. Each entry is identified
+                 by the respective filter-id and entry-id.
+
+                 Refer to the description of entry-id for more info
+                 on the allowed values for this object.";
+            type types-filter:entry-id;
+        }
+    }
+
+    grouping ipvx-filter-entry-config {
+        description
+            "Information about a particular IPvx filter entry";
+
+        leaf active-destination {
+            config false;
+            description
+                "This object indicates the IPvx address of the active
+                destination for this IPvx filter. A value of 0 indicates
+                that there is currently no active destination.";
+            type types-sros:ip-address;
+        }
+
+        leaf description {
+            description
+                "The description of the IPvx filter entry configuration";
+            type types-sros:description;
+        }
+
+        leaf egress-hit-count {
+            config false;
+            description
+                "This object indicates the number of times an egress packet
+                matched this entry.";
+            type yang:zero-based-counter64;
+        }
+
+        leaf egress-pbr {
+            description
+                "The value of this object specifies if PBR specified by entry
+                 will have an effect when the filter is applied on egress.
+                 Egress-pbr is applicable with these configured actions and
+                 action state:
+                 - no action
+                 - action forward redirect-policy <policy-name>
+                 - action forward esi <esi> sf-ip <ipv6-address>
+                 vas-interface <interface-name> router <router-instance>
+                 - action forward esi <esi> sf-ip <ipv6-address>
+                 vas-interface <interface-name> router service-name <service-name>
+                 - action forward next-hop <ipv6-address>
+                 - action forward next-hop <ipv6-address> router <router-instance>
+                 - action forward next-hop <ipv6-address> router service-name <service-name>
+                 - action forward next-hop indirect <ipv6-address>
+                 - action forward next-hop indirect <ipv6-address> router <router-instance>
+                 - action forward next-hop indirect <ipv6-address> router
+                 service-name <service-name>";
+            type types-filter:filter-egress-pbr;
+            default disable;
+        }
+
+        leaf egress-hit-byte-count {
+            config false;
+            description
+                "This object indicates the number of bytes of all egress
+                packets that matched this entry.";
+            type yang:zero-based-counter64;
+        }
+
+        leaf filter-sample {
+            description
+                "When this object has a value of 'true', Cflowd sampling
+                 and analysis is performed on those packet streams where this
+                 filter has been applied. Only packets matching this IPv6
+                 filter entry are subjected to cflowd sampling and analysis.
+                 A cflowd profile controls the sampling and analysis of
+                 data flows through the router.";
+            type boolean;
+            default false;
+        }
+
+        leaf ingress-hit-count {
+            config false;
+            description
+                "This object indicates the number of times an ingress packet
+                matched this entry.";
+            type yang:zero-based-counter64;
+        }
+
+        leaf ingress-hit-byte-count {
+            config false;
+            description
+                "The value of this object indicates the number of bytes of
+                 all ingress packets that matched this entry.";
+            type yang:zero-based-counter64;
+        }
+
+        leaf interface-disable-sample {
+            description
+                "When thsi  object has a value of 'true', cflowd sampling
+                 and analysis is performed on those packet streams where
+                 this filter has been applied. Only packets matching this
+                 IPvx filter entry are subjected to cflowd sampling and
+                 analysis. A cflowd profile controls the sampling and
+                 analysis of data flows through the router.";
+            type boolean;
+            default true;
+        }
+
+        leaf last-changed {
+            config false;
+            description
+                "The value of this object indicates the timestamp of
+                 last change to this row in.";
+            type types-sros:last-changed;
+        }
+
+        leaf log {
+            description
+                "This object specifies the log to use for packets that
+                 match this entry. The value zero indicates that logging
+                is disabled.";
+            type leafref {
+                path "/filter/log/log-id";
+            }
+        }
+
+        leaf log-instantiated {
+            config false;
+            description
+                "This object indicates if the filter log for this filter
+                 entry has been instantiated or not.";
+            type boolean;
+        }
+
+        leaf pbr-down-action-override {
+            description
+                "The value of this object specifies the filter action
+                 which will be performed when the PBR/PBF target for
+                 this entry is not available.
+
+                 Note: The value of this object can be different
+                 from 'none' only if the value of action is 'forward-esi-l2'
+                 or 'forward-esi-l3'.";
+            type types-filter:filter-pbr-down-action-ovr;
+            default none;
+            }
+
+        container sticky-dest {
+            sros:nmi-container;
+            description
+                "IPvx filter entry sticky-dest configuration";
+
+            uses ipvx-filter-entry-sticky-dest;
+        }
+    }
+
+    grouping ip-filter-entry-config {
+
+        uses ipvx-filter-entry-config;
+
+        container match {
+            sros:nmi-container;
+            description
+                "IP filter entry match configuration";
+
+            uses ipvx-filter-entry-match;
+
+            container dst-ip {
+                sros:nmi-container;
+                description
+                "IP filter entry match dst-ip configuration.";
+
+                uses ip-src-dst-address;
+            }
+
+            container ip-option {
+                sros:nmi-container;
+                description
+                "IP filter entry match ip-option configuration.";
+
+                leaf ip-option-mask {
+                    description
+                        "Mask is ANDed with the ip-option before being compared to
+                        ip-option-value.";
+                    type types-sros:ip-option; // TODO: can be hex, decimal binary...
+                    default 0;
+                }
+
+                leaf ip-option-value {
+                    description
+                        "The value of the specific ip-option to match.";
+                    type types-sros:ip-option; // TODO: can be hex, decimal binary...
+                    default 0;
+                    }
+
+                leaf multiple-option {
+                    description
+                        "If enabled, matches multiple options as per the
+                        value of the object.";
+                    type types-filter:item-match;
+                    default off;
+                }
+
+                leaf option-present {
+                    description
+                        "If enabled, this object matches packets if they
+                        have options present or not as per the value of
+                        the object.";
+                    type types-filter:item-match;
+                    default off;
+                }
+            }
+
+            leaf fragment {
+                description
+                    "If not default, matches fragmented/unfragmented packets as
+                    per value of the IPv4 object.";
+                type enumeration {
+                    enum off            { value 1; }
+                    enum false          { value 2; }
+                    enum true           { value 3; }
+                }
+                default off;
+            }
+
+            leaf protocol {
+                description
+                    "IP protocol to match. Set to -1 to disable matching
+                     IP protocol. If the protocol is changed the protocol
+                     specific parameters are reset.
+                     For instance if protocol is changed from TCP to UDP,
+                     then the objects tcp-syn and tcp-ack will be turned off.";
+                type types-filter:ipv4-match-protocol;
+                default none;
+            }
+
+            container src-ip {
+                sros:nmi-container;
+                description
+                    "IP filter entry match src-ip configuration";
+
+                uses ip-src-dst-address;
+            }
+
+            leaf src-route-option {
+                description
+                    "This leaf specifies, when enabled, that this filter
+                     should match if a (strict or loose) source route
+                     option is present/not present at any location within
+                     the IP header, as per the value of this object.";
+                type types-filter:item-match;
+                default off;
+            }
+        }
+    }
+
+    grouping hop-limit-or-ttl-for-drop {
+        leaf oper {
+            description
+                "Operator specifies the way how the values 'value' and 'to' are used to form
+                 a condition that must be fulfilled in order to execute the action.";
+            type types-filter:match-operator;
+            default none;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and action/type != drop-ttl";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "(oper = lt) and value = 0";
+                sros:reason inconsistent-value;
+                sros:extra-text "TTL/Hop Limit value must be in range 1..255 when operator is 'lt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "(oper = gt) and value = 255";
+                sros:reason inconsistent-value;
+                sros:extra-text "TTL/Hop Limit value must be in range 0..254 when operator is 'gt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_TTL_OR_HOP_LIMIT_ONLY_WITH_DROP_OR_RL {
+                sros:if "$modified($this) and $this != 0 and action/type != drop-ttl";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        leaf value {
+            description
+                "Specifies the value to be compared to the value of 'Time-to-live' field of IPv4 header
+                 or 'Hop-Limit' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..255";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != drop-ttl) or oper = none";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "$modified($this) and $this != 0 and oper = none";
+                sros:reason inconsistent-value;
+                sros:extra-text "value1 can be set only when the operator is set to a value other than 'none'";
+            }
+        }
+
+        leaf to {
+            description
+                "Specifies the range value to be compared in to the value of 'Time-to-live' field of IPv4 header
+                 or 'Hop-Limit' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..255";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != drop-ttl) or oper != range";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "$modified($this) and $this != 0 and oper != range";
+                sros:reason inconsistent-value;
+                sros:extra-text "value2 can be set only when the operator is 'range'";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "oper = range and to < value";
+                sros:reason inconsistent-value;
+                sros:extra-text "range start value must be less than range end value"; //CD-119
+            }
+        }
+    }
+
+    grouping payload-or-packet-length-for-drop {
+        leaf oper {
+            description
+                "Operator specifies the way how the values 'value' and 'to' are used to form
+                 a condition that must be fulfilled in order to execute the action.";
+            type types-filter:match-operator;
+            default none;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and action/type != drop-packet-length";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "(oper = lt) and value = 0";
+                sros:reason inconsistent-value;
+                sros:extra-text "packet length value must be in range 1..65535 when operator is 'lt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "(oper = gt) and value = 65535";
+                sros:reason inconsistent-value;
+                sros:extra-text "packet length value must be in range 0..65534 when operator is 'gt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_RESTRICTION_PKT_LEN_ONLY_WITH_DROP_OR_RL {
+                sros:if "$modified($this) and $this != 0 and action/type != drop-packet-length";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        leaf value {
+            description
+                "Specifies the value to be compared to the value of 'Total length' field of IPv4 header
+                 or 'Payload Length' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..65535";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != drop-packet-length) or oper = none";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "$modified($this) and $this != 0 and oper = none";
+                sros:reason inconsistent-value;
+                sros:extra-text "value1 can be set only when the operator is set to a value other than 'none'";
+            }
+        }
+
+        leaf to {
+            description
+                "Specifies the range value to be compared in to the value of 'Total length' field of IPv4 header
+                 or 'Payload Length' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..65535";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != drop-packet-length) or oper != range";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "$modified($this) and $this != 0 and oper != range";
+                sros:reason inconsistent-value;
+                sros:extra-text "value2 can be set only when the operator is 'range'";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "oper = range and to < value";
+                sros:reason inconsistent-value;
+                sros:extra-text "range start value must be less than range end value"; //CD-119
+            }
+        }
+    }  // grouping payload-or-total-length-for-drop
+
+    grouping hop-limit-and-payload-length-for-drop {
+        container hop-limit {
+            sros:nmi-container;
+            description
+                "Hop-Limit field of IPv6 header of an IP packet. ";
+
+            uses hop-limit-or-ttl-for-drop;
+        }
+
+        container payload-length {
+            sros:nmi-container;
+            description
+                "Payload-length field of IPv6 header of an IP packet.";
+
+            uses payload-or-packet-length-for-drop;
+        }
+    }
+
+    grouping hop-limit-or-ttl-for-rate-limit {
+        leaf oper {
+            description
+                "Operator specifies the way how the values 'value' and 'to' are used to form
+                 a condition that must be fulfilled in order to execute the action.";
+            type types-filter:match-operator;
+            default none;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and action/type != rate-limit-ttl";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "(oper = lt) and value = 0";
+                sros:reason inconsistent-value;
+                sros:extra-text "TTL/Hop Limit value must be in range 1..255 when operator is 'lt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "(oper = gt) and value = 255";
+                sros:reason inconsistent-value;
+                sros:extra-text "TTL/Hop Limit value must be in range 0..254 when operator is 'gt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_TTL_OR_HOP_LIMIT_ONLY_WITH_DROP_OR_RL {
+                sros:if "$modified($this) and $this != 0 and action/type != rate-limit-ttl";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        leaf value {
+            description
+                "Specifies the value to be compared to the value of 'Time-to-live' field of IPv4 header
+                 or 'Hop-Limit' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..255";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != rate-limit-ttl) or oper = none";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "$modified($this) and $this != 0 and oper = none";
+                sros:reason inconsistent-value;
+                sros:extra-text "value1 can be set only when the operator is set to a value other than 'none'";
+            }
+        }
+
+        leaf to {
+            description
+                "Specifies the range value to be compared in to the value of 'Time-to-live' field of IPv4 header
+                 or 'Hop-Limit' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..255";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != rate-limit-ttl) or oper != range";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "$modified($this) and $this != 0 and oper != range";
+                sros:reason inconsistent-value;
+                sros:extra-text "value2 can be set only when the operator is 'range'";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_TTL_OR_HOP_LIMIT {
+                sros:if "oper = range and to < value";
+                sros:reason inconsistent-value;
+                sros:extra-text "range start value must be less than range end value"; //CD-119
+            }
+        }
+    }  // grouping hop-limit-or-ttl-for-rate-limit
+
+    grouping payload-or-packet-length-for-rate-limit {
+        leaf oper {
+            description
+                "Operator specifies the way how the values 'value' and 'to' are used to form
+                 a condition that must be fulfilled in order to execute the action.";
+            type types-filter:match-operator;
+            default none;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and action/type != rate-limit-packet-length";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "(oper = lt) and value = 0";
+                sros:reason inconsistent-value;
+                sros:extra-text "packet length value must be in range 1..65535 when operator is 'lt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "(oper = gt) and value = 65535";
+                sros:reason inconsistent-value;
+                sros:extra-text "packet length value must be in range 0..65534 when operator is 'gt'"; //CD-119
+            }
+            sros:error FILTER_IPPARAMS_RESTRICTION_PKT_LEN_ONLY_WITH_DROP_OR_RL {
+                sros:if "$modified($this) and $this != 0 and action/type != rate-limit-packet-length";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        leaf value {
+            description
+                "Specifies the value to be compared to the value of 'Total length' field of IPv4 header
+                 or 'Payload Length' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..65535";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != rate-limit-packet-length) or oper = none";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "$modified($this) and $this != 0 and oper = none";
+                sros:reason inconsistent-value;
+                sros:extra-text "value1 can be set only when the operator is set to a value other than 'none'";
+            }
+        }
+
+        leaf to {
+            description
+                "Specifies the range value to be compared in to the value of 'Total length' field of IPv4 header
+                 or 'Payload Length' field of IPv6 header of an IP packet that has hit this filter's entry.";
+            type uint32 {
+                range "0..65535";
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "($modified(action/type) and action/type != rate-limit-packet-length) or oper != range";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "$modified($this) and $this != 0 and oper != range";
+                sros:reason inconsistent-value;
+                sros:extra-text "value2 can be set only when the operator is 'range'";
+            }
+            sros:error FILTER_IPPARAMS_INVALID_PKT_LEN {
+                sros:if "oper = range and to < value";
+                sros:reason inconsistent-value;
+                sros:extra-text "range start value must be less than range end value"; //CD-119
+            }
+        }
+    }  // grouping payload-or-packet-length-for-rate-limit
+
+    grouping hop-limit-and-payload-length-for-rate-limit {
+
+        container hop-limit {
+            sros:nmi-container;
+            description
+                "Hop-Limit field of IPv6 header of an IP packet. ";
+
+            uses hop-limit-or-ttl-for-rate-limit;
+        }
+
+        container payload-length {
+            sros:nmi-container;
+            description
+                "Payload length field of IPv6 header of an IP packet. ";
+
+            uses payload-or-packet-length-for-rate-limit;
+        }
+    }
+
+    grouping ipvx-filter-entry-action-forward-next-hop-common {
+
+        leaf indirect {
+            description
+                "Specifies if the nexthop is directly or indirectly reachable.";
+            type boolean;
+            default false;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != [forward-next-hop-router|forward-next-hop])";
+            }
+        }
+
+        leaf router {     //type translator needed
+            sros-mci:always-deliver { sros:if "action/type = forward-next-hop-router"; }
+            description
+                "Specifies the routing context in which the packet will be forwarded if it
+                 hits this filter entry.";
+            type types-services:vrtr-id-or-zero;
+            default 0;
+//          type leafref {
+//                  path "";  // TODO
+//              }
+            sros:auto-reset {
+                 sros:if "$modified(action/type) and (action/type != forward-next-hop-router)";
+            }
+            sros:error FILTER_IPPARAMS_Action_mismatch {
+                sros:if "$modified($this) and $this != $default and (action/type != forward-next-hop-router)";
+                sros:reason inconsistent-value;
+                sros:extra-text "Forward router id mismatch";
+            }
+        }
+    }
+
+    grouping ipvx-filter-entry-action-forward-esi-common {
+
+        leaf esi-value {
+            sros-mci:name forward-esi;
+            sros-mci:always-deliver { sros:if "$modified(action/type) and (action/type = [forward-esi-l2 | forward-esi-l3])"; }
+            description
+                "Specifies the ethernet segment identifier (ESI) of the first ESI
+                identified appliance in Nuage service chain.";
+            type types-filter:filter-esi;
+            default "AAAAAAAAAAAAAA==";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != [forward-esi-l2 | forward-esi-l3])";
+            }
+        }
+
+        leaf service-id {
+            description
+                "Specifies the identifier of the VPLS used for VPN/DC connectivity.";
+            type types-sros:service-id;
+            default 0;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-esi-l2)";
+            }
+        }
+
+        leaf vas-interface {
+            description
+                "Specifies the virtual router interface index of VPRN RVPLS interface
+                 used for VPN/DC connectivity.";
+            type types-services:interface-index-or-zero;
+            default "0";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-esi-l3)";
+            }
+        }
+
+        leaf router {
+            description
+                "Specifies the routing context in which the packet will be forwarded if it
+                 hits this filter entry.";
+            type types-services:vrtr-id-or-zero;
+            default 0;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-esi-l3)";
+            }
+        }
+    }
+
+    grouping ipv6-filter-entry-action-forward-next-hop {
+
+        leaf ip-address {
+            description
+                "Specifies the IP/IPv6 address of the nexthop to which the packet
+                 should be forwarded if it hits this filter entry.";
+            type types-sros:ip-address;
+            default "0::0";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != [forward-next-hop-router|forward-next-hop])";
+            }
+            sros:error FILTER_IPPARAMS_Action_Nexthop_Inv_IpAddr { // DTS183130
+                sros:if "$modified(action/type) and (action/type = [forward-next-hop-router|forward-next-hop]) and $this = $default";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        uses ipvx-filter-entry-action-forward-next-hop-common;
+
+    }
+
+    grouping ipv6-filter-entry-action-forward-esi {
+        leaf sf-ip {   //type translator needed
+            description
+                "Specifies the IP address of the service function toward which
+                 traffic is steered.";
+            type types-sros:ip-address;
+            default "0::0";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-esi-l3)";
+            }
+    }
+
+    uses ipvx-filter-entry-action-forward-esi-common;
+
+    }
+
+    grouping ipvx-filter-entry-action-forward-vprn-target-common
+    {
+        leaf bgp-nh {
+            description
+                "Specifies the target BGP next-hop IP address.";
+            type types-sros:ipv4-address;
+            default "0.0.0.0";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-vprn-target)";
+            }
+        }
+
+        leaf router {      //type translator needed
+            description
+                "Specifies the routing context used for route lookup.";
+            type types-services:vrtr-id-or-zero;
+            default 0;
+            sros:auto-reset {
+                 sros:if "$modified(action/type) and (action/type != forward-vprn-target)";
+            }
+        }
+
+        leaf lsp {
+            description
+                "Specifies LSP for packets matching the entry.";
+            type types-sros:named-item-or-empty;
+            default "";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-vprn-target)";
+            }
+        }
+    }
+
+    grouping ipv6-filter-entry-action-forward-vprn-target {
+
+        leaf adv-prefix {
+            description
+                "Specifies the advertised IP prefix for the target destination.";
+            type types-sros:ipv6-prefix;
+            default "";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-vprn-target)";
+            }
+        }
+
+        uses ipvx-filter-entry-action-forward-vprn-target-common;
+    }
+
+    grouping src-dst-mac {
+        description
+            "Source/destination MAC address Match Criteria.";
+
+        leaf value {
+            description
+                "Specifies source/destination MAC address to match for this policy MAC filter entry.";
+            type yang:mac-address;
+            default "00:00:00:00:00:00";
+        }
+
+        leaf mask {
+            description
+                "Specifies source/destination MAC address mask.";
+            type yang:mac-address;
+            default "00:00:00:00:00:00";
+        }
+    }
+
+    grouping src-dst-sap {
+        description
+            "Source/destination SAP Match Criteria.";
+
+        leaf value{
+            description
+                "Specifies source/destination SAP value.";
+            type types-qos:service-access-point {
+                sros:implicit-default -1;
+            }
+        }
+
+        leaf mask {
+            description
+                "Specifies source/destination SAP mask.";
+            type types-qos:service-access-point {
+                sros:implicit-default -1;
+            }
+        }
+    }
+
+    grouping inner-outer-tag {
+        description
+            "VID Inner/Outer Tag Match Criteria.";
+
+        leaf value {
+            description
+                "Specifies the value to match against the VID of the second/first VLAN tag
+                 in the packet that is carried transparently through the service
+                 (the second/first vlan tag after the service delimiting tags).";
+            type int32 {
+                range -1|0..4095;
+            }
+            default -1;
+        }
+
+        leaf mask {
+            description
+                "Mask to VID of the inner VLAN tag of the packet prior to comparing it with
+                 inner-tag/outer-tag value.  The inner tag is the second tag in the packet that is carried
+                 transparently through the service (the second tag after the service delimiting tags).
+                 The outer tag is the first tag in the packet that is carried
+                 transparently through the service (the first tag after the service delimiting tags).";
+            type uint32 {
+                range 1..4095;
+            }
+            default 4095;
+        }
+    }
+
+    grouping mac-filter-entry-config {
+        description
+            "Common properties for MAC filter entries.";
+
+        leaf log {
+            description
+                "Specifies the log to use for packets that match
+                 this entry. The value zero indicates that logging is disabled.";
+            type leafref {
+                path "/filter/log/log-id";
+            }
+        }
+
+        leaf log-instantiated {
+            config false;
+            description
+                "Indicates if the filter log for this filter entry has been instantiated or not.";
+            type boolean;
+        }
+
+        leaf description {
+            description
+                "User-provided description for this filter entry.";
+            type types-sros:description;
+        }
+
+        leaf pbr-down-action-override {
+            description
+                "Filter action which will be performed when the PBR/PBF target
+                for this entry is not available.";
+            type types-filter:filter-pbr-down-action-ovr;
+            default none;
+        }
+
+        container stickiness-dest {
+            sros:nmi-container;
+            description "Stickiness of PBF destinations and hold-time-up for stickiness to take effect";
+
+            leaf sticky-dest {
+                sros-mci:name sticky-dest;
+                description
+                    "Specifies how long the system will wait (in seconds) until it activates
+                    the best action (action with available PBF destination and the highest priority).
+                    Until then the action specified by tMacFilterParamsPbrDwnActOvr will be
+                    taken on a packet matching the filter entry. After the value of the
+                    active destination is fixed it will remain unchanged until the active
+                    PBF destination becomes unreachable.";
+                type int32 {
+                    range -1..65535;
+                }
+                default -1;
+            }
+
+            leaf hold-remain {
+                config false;
+                sros-mci:name hold-remain;
+                description
+                    "Indicates the remaining time in seconds, until the best action
+                    will become active and will be fixed.";
+                type int32 {
+                    range 0..65535;
+                }
+                default 0;
+            }
+
+            leaf download-action {
+                config false;
+                sros-mci:name download-action;
+                description
+                    "Filter entry action downloaded to IOM.";
+                type types-filter:filter-downloaded-action;
+                default none;
+            }
+        }
+
+        container match {
+            sros:nmi-container;
+            description "Configuration of match criteria for MAC filter entry";
+
+            leaf frame-type {
+                sros-mci:name frame-type;
+                description
+                    "The type of MAC frame for which we are defining this match criteria.";
+                type types-filter:mac-frame-type;
+                default 802dot3;
+                sros:dynamic-default ethernet-II { sros:if "filter/mac-filter/type = vid"; }
+            }
+
+            container src-mac {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "Source MAC address match criteria.";
+
+                uses src-dst-mac;
+            }
+
+            container dst-mac {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "Destination MAC address Match Criteria.";
+
+                uses src-dst-mac;
+            }
+
+            container dot1p {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "802.1P Priority Match Criteria.";
+
+                leaf value {
+                    sros-mci:name dot1p-value;
+                    description
+                        "Specifies 802.1P Priority value.";
+                    type types-qos:dot1p-priority {
+                        sros:implicit-default -1;
+                    }
+
+//                      sros:error QOS_SI_MAC_tSapIngressMacCriteriaFrameType {
+//                          sros:if "$this != $default and match/frame-type = atm";
+//                          sros:reason inconsistent-value;
+//                      }
+                }
+
+                leaf mask {
+                    sros-mci:name dot1p-mask;
+                    description
+                        "Specifies 802.1P Priority mask.";
+                    type types-qos:dot1p-priority;
+                    default 0;
+                }
+            }
+
+            leaf etype {
+                sros-mci:name etype;
+                description
+                    "Specifies the ethernet type";
+                type int32 {
+                        range -1|1536..65535;
+                }
+                default -1;
+            }
+
+            container dsap {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "DSAP Match Criteria.";
+
+                uses src-dst-sap;
+            }
+
+            container ssap {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "SSAP Match Criteria.";
+
+                uses src-dst-sap;
+            }
+
+            leaf snap-pid {
+                sros-mci:name snap-pid;
+                description
+                    "Specifies snap-pid Match Criteria.";
+                type int32 {
+                        range -1..65535;
+                }
+                default -1;
+            }
+
+            leaf snap-oui {
+                sros-mci:name snap-oui;
+                description
+                    "Specifies snap-oui Match Criteria.";
+                type enumeration {
+                        enum off         { value 1; }
+                        enum zero        { value 2; }
+                        enum non-zero    { value 3; }
+                }
+                default off;
+            }
+
+            container inner-tag {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "VID Inner Tag Match Criteria.";
+
+                uses inner-outer-tag;
+            }
+
+            container outer-tag {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "VID Outer Tag Match Criteria.";
+
+                uses inner-outer-tag;
+            }
+
+            container isid {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "Service instance identifier.";
+
+                leaf isid-value {
+                    sros-mci:name isid-value;
+                    description
+                        "Specifies lowest value of the 24 bit (0..16777215) service
+                         instance identifier for this service that matches this entry.";
+                    type types-sros:svc-isid;
+                    default -1;
+                }
+
+                leaf to {
+                    sros-mci:name isid-to-value;
+                    description
+                        "Specifies the highest value of the 24 bit (0..16777215) service
+                        instance identifier for this service that matches this entry.";
+                    type types-sros:svc-isid;
+                    default -1;
+                }
+            }
+
+        }
+
+        leaf ingress-hit-count {
+            config false;
+            description
+                "Indicates the number of times an ingress packet matched this entry.";
+            type yang:counter64;
+            default 0;
+        }
+
+        leaf egress-hit-count {
+            config false;
+            description
+                "Indicates the number of times an egress packet matched this entry.";
+            type yang:counter64;
+            default 0;
+        }
+
+        leaf ingress-hit-byte-count {
+            config false;
+            description
+                "Indicates the number of bytes of all ingress packets that matched this entry.";
+            type yang:counter64;
+            default 0;
+        }
+
+        leaf egress-hit-byte-count {
+            config false;
+            description
+                "Indicates the number of bytes of all egress packets that matched this entry.";
+            type yang:counter64;
+            default 0;
+        }
+
+        leaf fwd-svc-id {
+            config false;
+            description
+                "Indicates the service id of the destination for this MAC filter entry.";
+            type types-services:service-id;
+        }
+
+    }
+
+
+    grouping ipv6-src-dst-address {
+        description
+            "Specifies the source or destination IPv6 address or address and
+            mask for IPv6 filter entry.";
+
+        leaf ipv6-address-and-mask-or-prefix {
+            description
+                "If different from 0, this object specifies the
+                 IPv6 mask value for this policy IPv6 filter entry.
+                 The mask is ANDed with the received destination
+                 IPv6 address to match the address.
+
+                 If the value of mask is 0, and the value of
+                 address-mask is non zero then the value of address-mask
+                 is used as a mask.
+
+                 If the value of mask is non zero, it will be equal
+                 to the mask expressed in the object address-mask.
+
+                 If both mask and address-mask are set to 0, no
+                 matching is done on the destination IPv6 address.
+
+                 If a regular mask is specified for address-mask
+                 then the value of mask will be changed to reflect
+                 this value.";
+            type types-sros:ipv6-address-and-mask;
+            default "0::0 0::0";
+            sros:auto-reset {
+                sros:if "$modified(ipv6-prefix-list) and (not $modified($this))";
+            }
+        }
+
+        leaf ipv6-prefix-list {
+            description
+                "Specifies ip-prefix-list used as match criterion.";
+            type leafref {
+                path "/filter/match-list/ipv6-prefix-list/prefix-list-name";
+            }
+            sros:auto-reset {
+                sros:if "$modified(ipv6-address-and-mask-or-prefix) and (not $modified($this))";
+            }
+        }
+    }
+
+    grouping ip-src-dst-address {
+        description
+            "Specifies the source or destination IP address or address and
+             mask for IP filter entry.";
+
+        leaf ip-address-and-mask-or-prefix {
+            description
+                "IP address to match the destination-ip of the packet.
+                 If different from 0, the object tIPFilterParamsDestinationIpMask
+                 specifies the IP Mask value for this policy IP Filter entry.
+                 The mask is ANDed with the received Destination IP address to match
+                 the ip-address.
+
+                 If the value of ip-mask is 0, and the value of full-mask is
+                 non zero then the value of full-mask is used as mask.
+
+                 If the value of ip-mask is non zero, it will be equal to the
+                 mask expressed the object full-mask.
+
+                 If both ip-mask and full-mask are set to 0, no matching is done
+                 on the destination ip address.
+
+                 If a value is specified for this object, then the value of the
+                 object full-mask will be set to reflect this same mask.
+
+                 If different from 0, the object full-mask specifies the IP mask
+                 value for this policy IP filter entry.
+                 The mask is ANDed with the received source IP address to match
+                 the ip-address.
+
+                 If the value of ip-mask is non zero, it will be equal to the
+                 mask expressed the object full-mask.
+
+                 If both ip-mask and ip-full-mask are set to 0, no matching is done
+                 on the source IP address.
+
+                 This object should contain consecutive ones and zeros. Both
+                 a regular and an inverse mask is allowed (i.e. the sequence of
+                 consecutive ones can appear at the front or at the end of the
+                 mask).
+
+                 If a regular mask is specified for full-mask then the value of
+                 ip-mask will be changed to reflect this value. If an inverse
+                 is specified, the value of ip-mask will be set to 0.";
+            type types-sros:ipv4-address-and-mask;
+            default "0.0.0.0 0.0.0.0";
+            sros:auto-reset {
+                sros:if "$modified(ip-prefix-list) and (not $modified($this))";
+            }
+        }
+
+        leaf ip-prefix-list {
+            description
+                "Specifies ip-prefix-list used as match criterion.";
+            type leafref {
+                path "/filter/match-list/ip-prefix-list/prefix-list-name";
+            }
+            sros:auto-reset {
+                sros:if "$modified(ip-address-and-mask-or-prefix) and (not $modified($this))";
+            }
+        }
+    }
+
+    grouping ipvx-filter-entry-port {
+        description
+            "Specifies the source or destination port for ipvx filter entry.";
+
+        leaf end {
+            sros-mci:always-deliver { sros:if "$modified(operator) and (operator != range)"; }
+            description
+                "TCP/UDP port value2. The value of this object is
+                used as per the description for operator.";
+            type int32 {
+                range 0|1..65535;
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "$modified(port-list) and port-list != $default";
+            }
+            sros:error SIA_INCONSISTENT_VALUE {
+                sros:if "$this != $default and port-list != $default";
+                sros:reason inconsistent-value;
+                sros:extra-text "Cannot set Port/PortMask/PortHigh/PortOper and PortList simultaneously";
+            }
+        }
+
+        leaf operator {
+            description
+                "The operator specifies the manner in which start
+                and end are to be used.";
+            type types-filter:match-operator;
+            default none;
+            sros:auto-reset {
+                sros:if "$modified(port-list) and port-list != $default";
+            }
+            sros:error SIA_INCONSISTENT_VALUE {
+                sros:if "$this != $default and port-list != $default";
+                sros:reason inconsistent-value;
+                sros:extra-text "Cannot set Port/PortMask/PortHigh/PortOper and PortList simultaneously";
+            }
+        }
+
+        leaf port-list {
+            description
+                "The value of this object specifies the port-list
+                used as match criterion for the destination port.
+
+                The value specified for this object must correspond
+                to a port-list defined in port-list-table.
+
+                If the value of this object is empty then the values
+                of the objects start, end, and operator are used
+                as destination port match criterion.
+
+                When this object is set to a non-empty value then
+                the objects start, end and operator are reset to
+                their default values by the system.
+
+                Vice versa, when a new (non-default) value is
+                provided for one of the objects start, end and operator
+                then port-list is reset to its default (empty)
+                value by the system.
+
+                Setting any one of the objects start, end and operator
+                to a non-default value in combination with a
+                non-default value for the object port-list is
+                rejected by the system";
+            type leafref {
+                path "/filter/match-list/port-list/port-list-name";
+            }
+            sros:auto-reset {
+                sros:if "($modified(start) and start != $default) or
+                         ($modified(end) and end != $default) or
+                         ($modified(operator) and operator != $default)";
+            }
+            sros:error SIA_INCONSISTENT_VALUE {
+                sros:if "$this != $default and (start != $default or end != $default or operator != $default)";
+                sros:reason inconsistent-value;
+                sros:extra-text "Cannot set Port/PortMask/PortHigh/PortOper and PortList simultaneously";
+            }
+        }
+
+        leaf start {
+            description
+                "Specifies the start value for source port.";
+            type int32 {
+                range 0|1..65535;
+            }
+            default 0;
+            sros:auto-reset {
+                sros:if "$modified(port-list) and port-list != $default";
+            }
+            sros:error SIA_INCONSISTENT_VALUE {
+                sros:if "$this != $default and port-list != $default";
+                sros:reason inconsistent-value;
+                sros:extra-text "Cannot set Port/PortMask/PortHigh/PortOper and PortList simultaneously";
+            }
+        }
+    }
+
+
+    grouping ipvx-filter-entry-match {
+        description
+            "Grouping for ipvx filter entry match";
+
+        leaf dscp {
+            description
+                "DSCP to be matched on the packet.";
+            type types-sros:named-item-or-empty;
+            default "";
+        }
+
+        container dst-port {
+            sros:nmi-container;
+            description
+                "IPvx filter entry match dst-port configuration";
+
+            uses ipvx-filter-entry-port;
+            }
+
+        leaf icmp-code {
+            description
+                "Icmp code to be matched. This object complements the
+                 object icmp-type. Both of them need to be set to
+                 actually enable ICMP matching. The value -1 means Icmp
+                 code matching is not enabled.";
+            type int32 {
+                range -1|0..255;
+            }
+            default -1;
+        }
+
+        leaf icmp-type {
+            description
+                "Icmp type to be matched. This object complements the
+                 object icmp-code. Both of them need to be set to
+                 actually enable ICMP matching. The value -1 means Icmp
+                type matching is not enabled.";
+            type int32 {
+                range -1|0..255;
+            }
+            default -1;
+        }
+
+        container port {
+            sros:nmi-container;
+            description
+                "IPvx filter entry match port configuration";
+
+            uses ipvx-filter-entry-port;
+        }
+
+        container src-port {
+            sros:nmi-container;
+            description
+                "IPvx filter entry match src-port configuration";
+
+            uses ipvx-filter-entry-port;
+        }
+
+        leaf tcp-ack {
+            description
+                "If Enabled, matches a TCP Ack as per value of the object.";
+            type types-filter:item-match;
+            default off;
+        }
+
+        leaf tcp-syn {
+            description
+                "If Enabled, matches a TCP Syn as per value of the object.";
+            type types-filter:item-match;
+            default off;
+        }
+    }
+
+    grouping ipvx-filter-entry-sticky-dest {
+        description
+            "IPvx filter entry sticky-dest configuration";
+
+        leaf download-act {
+            config false;
+            description
+                "The value of this object indicates the filter entry
+                action downloaded to IOM.";
+            type types-filter:filter-downloaded-action;
+        }
+
+        leaf hold-remain {
+            config false;
+            description
+                "The value of this object indicates the remaining
+                 time in seconds, until the best action will become
+                 active and will be fixed.
+
+                 Best action is:
+                 - primary action if PBR target status of primary
+                 action is up.
+                 - secondary action if PBR target status of secondary
+                 action is up and PBR target status of primary action
+                 is down.
+                 - none if both PBR targets are down";
+            type int32 {
+                range 0..65535;
+            }
+        }
+
+        leaf sticky-dest {
+            description
+                "The value of this object specifies how long the system
+                 will wait (in seconds) until it activates the best action
+                 (action with available PBR/PBF destination and the
+                 highest priority). Until then the action specified by
+                 pbr-down-action-override will be taken on a packet
+                 matching the filter entry. After the value of the
+                 active destination is fixed it will remain unchanged
+                 until the active PBR/PBF destination becomes unreachable.
+
+                 The value of -1 indicates that the property of PBR
+                 destination stickiness is turned off. When the property
+                 of stickiness is turned off the active PBR/PBF destination
+                 is always the one which is available and has the highest
+                 priority.
+
+                 The countdown starts when there is no PBR/PBF destination
+                 reachable and any PBR/PBF destination becomes reachable.
+                 This object can be set to values other than -1 only if
+                 the value of action is one of the following
+                 values:
+                 - forward-sap
+                 - forward-sdp
+                 - forward-next-hop
+                 - forward-next-hop-router";
+            type int32 {
+                range -1|0..65535;
+            }
+            default -1;
+        }
+    }
+
+
+    grouping ipvx-keys {
+        description
+            "Specifies a filter match list IPvx keys.";
+
+        leaf prefix-list-type {
+            description
+                "The prefix-list-type specifies the type of this prefix list.";
+
+            type  enumeration {
+                enum ipv4  { value 1; }
+                enum ipv6  { value 2; }
+                sros:implicit-default "none:0";
+            }
+        }
+
+        leaf prefix-list-name {
+            sros-mci:name name;
+            description
+                "The prefix-list-name specifies the name given to this prefix list.";
+            type types-sros:named-item;
+        }
+    }
+
+    grouping redirect-policy-key {
+        leaf redirect-policy {
+            description "The redirect-policy identifier.";
+            type types-sros:named-item;
+        }
+    }
+
+    grouping redirect-policy-state {
+        leaf act-dest-ip-address {
+            config false;
+            description
+                "The value indicates the IP address of the active
+                destination. A value of 0 indicates that there is currently
+                no active destination.
+                The value must be consistent with the IP version value of
+                the associated act-dest-ip-address type object.";
+            type types-sros:ip-address;
+        }
+    }
+
+    grouping redirect-policy-config {
+        leaf description {
+            description
+                "The description of the filter redirect policy
+                configuration";
+            type types-sros:description;
+        }
+
+        leaf router {
+            description
+                "Specifies the target routing instance as part of
+                the redirect policy.";
+            type types-sros:vrtr-id-or-zero;
+            default 0;
+//               type leafref { path ""; } TODO
+        }
+
+        leaf shutdown {
+            description
+                "Holds the admin state of the policy. If is it
+                shutdown, the tests will not be conducted";
+            type types-sros:shutdown;
+        }
+
+        container stickiness-dest {
+            sros:nmi-container;
+            description "Set stickiness of redirect-policy destinations.";
+
+            leaf sticky-dest-best-address {
+                config false;
+                sros-mci:name sticky-dest-best-address;
+                description
+                    "The value of the this object specifies
+                    the context in which the values of the objects
+                    act-dest-ip-address are interpreted.
+                    Only following values are supported:
+                    unknown(0)
+                    ipv4(1)
+                    ipv6(2)
+                     ";
+                type types-sros:ip-address;
+            }
+
+            leaf sticky-dest {
+                sros-mci:name sticky-dest;
+                description
+                    "The value of the object , if greater than -1
+                    specifies the time in seconds, how long will system wait until it sets
+                    and fixes the current best destination as active destination. After the
+                    value of active destination is fixed it will remain unchanged until the
+                    active destination becomes unreachable. When the value of
+                    sticky-dest is -1 the property of destination stickiness is
+                    turned off. That means that active destination is always the best one.
+                    The countdown starts when there was no destination reachable and any
+                    destination becomes reachable.";
+                type int32 {
+                    range -1..65535;
+                }
+                default -1;
+            }
+
+            leaf hold-remain {
+                config false;
+                sros-mci:name hold-remain;
+                description "Hold-remain for stickiness to take effect.";
+                type int32 {
+                    range 0..65535;
+                }
+                default 0;
+            }
+        }
+    }
+
+    grouping destination-key {
+        leaf destination-address {
+            description "IP address and type of the destination.";
+            type types-sros:ip-address;
+        }
+    }
+
+    grouping destination-config {
+        leaf description {
+            description
+                "User-provided description for this destination.";
+            type types-sros:description;
+        }
+
+        leaf priority {
+            description
+                "The value of this object specifies the configured
+                priority for this destination.
+
+                The value is used as a base value for the calculation
+                of the operational priority indicated by the value of
+                the object dynamic-priority.";
+            type uint32 {
+                range 1..255;
+            }
+            default 100;
+        }
+
+        leaf shutdown {
+            description
+                "The value of this object specifies the configured
+                administrative state of the destination.
+                If the destination is shutdown, then all
+                tests for this destination will not be conducted.";
+            type types-sros:shutdown;
+        }
+    }
+
+    grouping destination-state {
+        leaf dynamic-priority {
+            config false;
+            description
+                "The value of the this object indicates the current dynamic
+                priority of this destination.
+
+                It is derived from the base priority indicated by the value
+                of the object priority and results of tests assigned
+                to the destination.
+
+                A destination with the highest operational priority across multiple
+                 destinations in a Redirect Policy is used as the preferred
+                destination.
+
+                If operational state of the destination is 'out-of-service'
+                then the value of this leaf is '0'. ";
+            type uint32 {
+                range 0..255;
+                sros:implicit-default -1;
+            }
+         }
+
+        leaf oper-state {
+            config false;
+            description
+                "The value of the this object indicates the operational
+                 state of the destination.";
+            type types-sros:oper-state;
+         }
+     }
+
+    grouping ping-test-config {
+         leaf drop-count {
+            description
+                "The value of this object specifies the number of
+                consecutive requests that must fail for the
+                destination to be declared unreachable.";
+            type uint32 {
+                range 1..60;
+            }
+            default 3;
+        }
+
+        leaf hold-down {
+            description
+                "The value of this object specifies the amount of
+                time in seconds that the system should be held down
+                if any of the test has marked it unreachable.";
+            type uint32 {
+                range 0..86400;
+            }
+            default 0;
+        }
+
+        leaf interval {
+            description
+                "The value of this object specifies the amount of time
+                in seconds between consecutive requests sent to the far end
+                host.
+
+                Note that the value of this object can only be modified
+                if the value of the corresponding 'redirect-policy shutdown'
+                and/or 'redirect-policy destination shutdown' object is
+                outOfService.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+
+        leaf timeout {
+            description
+                "The value of this object specifies the amount of time
+                in seconds that is allowed for receiving a response
+                from the far end host. If a reply is not received
+                within this time the far end host is considered
+                unresponsive.
+
+                Note that the value of this object can only be modified
+                if the value of the corresponding 'redirect-policy
+                shutdown' and/or 'redirect-policy destination shutdown'
+                object is outOfService.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+    }
+
+    grouping ping-test-state {
+        leaf hold-down-remain {
+            config false;
+            description
+                "The value of this object indicates the amount of time
+                 in seconds that the system will remain in held down
+                state before being used again.";
+            type uint32 {
+                range 0..86400;
+            }
+        }
+
+        leaf last-action {
+            config false;
+            description
+                "The value of this object maintains impact that the
+                last test probe made on the operational status of the
+                destination as maintained in 'redirect-policy destination
+                shutdown'.
+
+                If the last action was 'disable', the destination may
+                not be used for hold-down seconds.";
+            type types-filter:redirect-policy-test-last-action;
+        }
+
+        leaf last-action-time {
+            config false;
+            description
+                "The value of this object maintains the time stamp when
+                this test received a response for a probe sent out.";
+            type yang:timestamp;
+        }
+    }
+
+    grouping filter-redirect-policy-snmp-test-key {
+        leaf test-name {
+            description
+                "The value of this object specifies the name of the
+                SNMP test.";
+            type types-sros:named-item;
+        }
+
+    }
+
+    grouping filter-redirect-policy-snmp-test-config {
+        container drop-count {
+            sros:nmi-container;
+            description "Set drop-count for filter redirect policy snmp test.";
+
+            leaf value {
+                sros-mci:name drop-count;
+                description
+                    "The value of this object specifies the number of
+                    consecutive requests that must fail for the destination
+                    to be declared unreachable.";
+                type uint32 {
+                    range 1..60;
+                }
+                default 3;
+            }
+
+            leaf hold-down {
+                sros-mci:name hold-down;
+                description
+                    "The value of this object specifies the amount
+                    of time in seconds that the system should be held
+                    down if this test has marked it unreachable.";
+                type uint32 {
+                    range 0..86400;
+                }
+                default 0;
+            }
+        }
+
+        leaf interval {
+            description
+               "The value of this object specifies the amount of time
+                in seconds between consecutive requests sent to the far end
+                host.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+
+        container oid {
+            sros:nmi-container;
+            sros:cli-leaf;
+            description
+                "Set filter redirect policy snmp test oid
+                 value and community.";
+
+            leaf value {
+               sros-mci:name oid;
+                description
+                    "The value of this object specifies the OID of the
+                    object to be fetched from the destination.
+
+                    The value of this object can only be changed if the
+                    object 'community' is changed at the same time.";
+               type yang:object-identifier-128;
+               default "0.0";
+            }
+
+            leaf community {
+                sros-mci:name community;
+                description
+                    "The value of this object specifies the SNMPv1 or
+                    SNMPv2c Community String or the SNMPv3 Context Name
+                    used to conduct this SNMP test as described in
+                    RFC2571 and RFC2737.
+
+                    When the value of 'version' is 'snmpv1' or 'snmpv2c'
+                    this object represents a community string.  When
+                    the value of 'version' is 'snmpv3' this object
+                    represents a SNMPv3 context name.
+                    The value of this object can only be changed if
+                    the object 'oid' is changed at the same time.";
+                type string {
+                    length 0..32;
+                    }
+                default "";
+            }
+        }
+        leaf hold-down-remain {
+            config false;
+            description
+                "The value of this object indicates the amount of
+                time in seconds that the system will remain in held down
+                state before being used again.";
+            type uint32 {
+                range 0..86400;
+            }
+        }
+
+        leaf timeout {
+            description
+                "The value of this object specifies the amount of time
+                in seconds that is allowed for receiving a response from
+                the far end host. If the response is not received within
+                this time the far end host is considered unresponsive.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+
+        leaf version {
+            description
+                "The value of this object specifies the SNMP PDU format
+                to be used while conducting the test. Currently only
+                snmpv2c is supported.";
+            type enumeration {
+                enum snmpv2c { value 2; }
+            }
+            default "snmpv2c";
+        }
+    }
+
+    grouping filter-redirect-policy-snmp-test-state {
+        leaf last-action {
+            config false;
+            description
+                "The value of this object indicates an impact that
+                the last test probe had on the value of the object
+                'redirect-policy destination shutdown'.
+
+                If the value is 'disable', the destination may not be
+                used for 'hold-down' seconds.";
+            type types-filter:redirect-policy-test-last-action;
+        }
+
+        leaf last-action-time {
+            config false;
+            description
+                "The value of this object indicates the time stamp
+                when this test received a response for a probe sent out.";
+            type yang:timestamp;
+        }
+
+        leaf last-counter-32 {
+            config false;
+            description
+                "If the last received test response was of type 'counter32',
+                this will contain that value. Otherwise, this value
+                will be set to 0 .";
+            type yang:counter32;
+          }
+
+        leaf last-counter-64 {
+            config false;
+            description
+                "If the last received test response was of type 'counter64',
+                this will contain that value. Otherwise, this value
+                will be set to 0 .";
+            type yang:counter64;
+          }
+
+        leaf last-int-32 {
+            config false;
+            description
+                "If the last received test response was of type 'integer32',
+                this will contain that value. Otherwise, this value
+                will be set to 0 .";
+            type int32;
+        }
+
+        leaf last-ipaddress {
+            config false;
+            description
+                "The value of this object indicates the value of an
+                object received in the last test response, if the type
+                of the received object is 'IPAddress'.
+                When this object is set the value of the object 'last-type'
+                is 'IPAddress'.
+
+                This object is used only for IPv4 addresses. IPv6 addresses
+                are represented using IP-address, and so the underlying
+                datatype is OCTET STRING, and their value would be stored
+                in the 'last-octetstringval' column.";
+            type types-sros:ip-address;
+        }
+
+        leaf last-octetstring {
+            config false;
+            description
+                "The value of this object indicates the value of an
+                object received in the last test response, if the type of
+                the received object is 'octetString'.
+                When this object is set the value of the object 'last-type'
+                is 'octetString'.";
+            type binary {
+                length 0..255;
+            }
+        }
+
+        leaf last-oid {
+            config false;
+            description
+                "The value of this object specifies the OID received
+                in the response.";
+            type yang:object-identifier-128;
+        }
+
+        leaf last-oid-value {
+            config false;
+            description
+                "The value of this object indicates the value of an
+                object received in the last test response, if the type
+                of the received object is 'objectId'.
+                When this object is set the value of the object 'last-type'
+                is 'objectId'.";
+            type yang:object-identifier-128;
+        }
+
+        leaf last-opaque {
+            config false;
+            description
+                "The value of this object indicates the value of an
+                object received in the last test response, if the type
+                of the received object is 'opaque'.
+                When this object is set the value of the object 'last-type'
+                is 'opaque'.";
+            type binary {
+                    length 0..255;
+            }
+        }
+
+        leaf last-priority-change {
+            config false;
+            description
+                "The value of this object indicates the priority change
+                that the last test probe made to the operational priority
+                of the destination. This object is significant only if the
+                value of the object 'last-action' is 'enable'.
+                Otherwise it has no significance and it's holding the
+                value '0'.";
+            type int32 {
+                range -255..255;
+            }
+        }
+
+        leaf last-timeticks {
+            config false;
+            description
+                "The value of this object indicates the value of an
+                object received in the last test response, if the type of
+                the received object is 'timeTicks'.
+                When this object is set the value of the object 'last-type'
+                is 'timeTicks'.";
+            type yang:timeticks;
+        }
+         leaf last-type {
+             // TODO when reworked the last-* items should probably be a choice
+             // as only one of the counter/unsigned/etc is valid at a time
+            config false;
+            description
+               "The value of this object indicates the type of the last
+               received SNMP object.
+
+                Value 'counter32' indicates that the value of SNMP
+                object is of type Counter32.
+
+                Value 'unsigned32' indicates that the value of SNMP
+                object is of type Unsigned32.
+
+                Value 'timeTicks' indicates that the value of SNMP
+                object is of type timeTicks.
+
+                Value 'integer32' indicates that the value of SNMP
+                object is of type integer32.
+
+                Value 'ipAddress' indicates that the value of SNMP
+                object is of type ipAddress.
+
+                Value 'octetString' indicates that the value of SNMP
+                object is of type OCTET STRING.
+
+                Value 'objectId' indicates that the value of SNMP
+                object is of type OBJECT IDENTIFIER.
+
+                Value 'counter64' indicates that the value of SNMP
+                object is of type Counter64.
+
+                Value 'unsigned32' indicates that the value of SNMP
+                object is of type Unsigned32.
+
+                Value 'opaque' indicates that the value of SNMP object
+                is of type Opaque.";
+            type enumeration {
+                enum none        { value 0; }
+                enum counter32   { value 1; }
+                enum unsigned32  { value 2; }
+                enum timeTicks   { value 3; }
+                enum integer32   { value 4; }
+                enum ipAddress   { value 5; }
+                enum octetString { value 6; }
+                enum objectId    { value 7; }
+                enum counter64   { value 8; }
+                enum opaque      { value 9; }
+            }
+        }
+
+        leaf last-unsigned-32 {
+            config false;
+            description
+                "If the last received test response was of type 'unsigned32',
+                 this will contain that value. Otherwise, this value
+                 will be set to 0 .";
+            type uint32;
+        }
+
+        leaf next-resp-index {
+            config false;
+            description
+                "The value of this object indicates the next response
+                 index to be used while creating a row in the
+                 snmp-return-value table.
+
+                 The value of '-1' means that the maximum number of
+                 return values for this OID is already configured.";
+            type int32 {
+                range "-1|1..2147483647";
+            }
+        }
+    }
+
+    grouping filter-redirect-policy-snmp-test-return-value-key {
+        leaf response-id {
+            description
+                "The value of this object indicates the ID of the
+                response entry.";
+            type int32 {
+                range "1..2147483647";
+            }
+        }
+    }
+
+    grouping filter-redirect-policy-snmp-test-return-value-config {
+        leaf action {
+            description
+                "The value of this object specifies the action
+                which will be taken on the operational priority
+                of a destination , if the received object OID and
+                value matches the values defined in snmp-test.
+
+                If priority is 0 the value of this object will be
+                set to 'disable'.
+
+                This object cannot be modified after creation. Any change attempts
+                will be silently discarded.";
+            type enumeration {
+                enum default        { value 0; }
+                enum raise-priority { value 1; }
+                enum lower-priority { value 2; }
+                enum disable        { value 3; }
+            }
+            default "default";
+            sros:immutable;
+        }
+
+        leaf priority {
+            description
+                "The value of this object specifies the offset
+                to be applied to the destination base priority
+                in order to compute the redirect-policy-oper-priority
+                as a result of this test, if this object is either
+                'increase' or 'decrease'.
+
+                If action is 'disable', priority will be forced to 0.
+                Any change to priority will be silently discarded
+                in this case.
+
+                Setting this object to 0 will cause the value of
+                action to be set to 'disable'.
+
+                This object cannot be modified after creation.
+                Any change attempts will be silently discarded.";
+            type uint32 {
+                range 0..255;
+            }
+            default 0;
+            sros:immutable;
+        }
+
+        leaf type {
+            description
+                "The value of this object indicates the type of the last
+                received SNMP object.
+
+                Value none(0) indicates that no object was received.
+
+                Value 'counter32' indicates that the value of SNMP
+                object is of type Counter32.
+
+                Value 'unsigned32' indicates that the value of SNMP
+                object is of type Unsigned32.
+
+                Value 'timeTicks' indicates that the value of SNMP
+                object is of type timeTicks.
+
+                Value 'integer32' indicates that the value of SNMP
+                object is of type integer32.
+
+                Value 'ipAddress' indicates that the value of SNMP
+                object is of type ipAddress.
+
+                Value 'octetString' indicates that the value of SNMP
+                object is of type OCTET STRING.
+
+                Value 'objectId' indicates that the value of SNMP
+                object is of type OBJECT IDENTIFIER.
+
+                Value 'counter64' indicates that the value of SNMP
+                object is of type Counter64.
+
+                Value 'unsigned32' indicates that the value of SNMP
+                object is of type Unsigned32.
+
+                Value 'opaque' indicates that the value of SNMP object
+                is of type Opaque.";
+            type enumeration {
+                enum counter32   { value 1; }
+                enum unsigned32  { value 2; }
+                enum timeTicks   { value 3; }
+                enum integer32   { value 4; }
+                enum ipAddress   { value 5; }
+                enum octetString { value 6; }
+                enum objectId    { value 7; }
+                enum counter64   { value 8; }
+                enum opaque      { value 9; }
+                sros:implicit-default "none:0";
+            }
+        }
+
+        leaf counter {
+            description
+                "The value of this object specifies the value of type
+                Counter32 which the object received in the test response
+                should have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'counter32'.
+
+                This field cannot be modified after creation. Any change
+                attempts will be silently discarded.";
+            type uint32;
+            default 0;
+        }
+
+        leaf unsigned-int {
+            description
+                "The value of this object specifies the value of type
+                Unsigned32 which the object received in the test response
+                should have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'unsigned32'.
+
+                This field cannot be modified after creation. Any change attempts
+                will be silently discarded.";
+            type uint32;
+            default 0;
+        }
+
+        leaf time-ticks {
+            description
+                "The value of this object specifies the value of type
+                TimeTicks which the object received in the test response
+                should have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'timeTicks'.
+
+                This field cannot be modified after creation. Any change attempts
+                will be silently discarded.";
+            type uint32;
+            default 0;
+        }
+
+        leaf integer {
+            description
+                "The value of this object specifies the value of type
+                Integer32 which the object received in the test response
+                should have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'integer32'.
+
+                This field cannot be modified after creation. Any change attempts
+                ill be silently discarded.";
+            type int32;
+            default 0;
+        }
+
+        leaf string {
+            description
+                "The value of this object specifies the value of type
+                OCTET STRING which the object received in the test response
+                should have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'octetString'.
+
+                This field cannot be modified after creation. Any change attempts
+                ill be silently discarded.";
+            type binary {
+                length 0..255;
+            }
+            default "";
+        }
+
+        leaf ip-address {
+            description
+                "The value of this object specifies the  IPv4 address
+                which the object received in the test response should have
+                in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'IPAddress'.
+
+                IPv6 addresses are represented using TAddress or InetAddress,
+                and so the underlying data type is OCTET STRING, and their
+                value would be stored in the string column.
+
+                This field cannot be modified after creation. Any change attempts
+                will be silently discarded.";
+            type types-sros:ip-address;
+            default "0.0.0.0";
+        }
+
+        leaf opaque {
+            description
+                "The value of this object specifies the value of type
+                Opaque which the object received in the test response should
+                have in order to pass the test.
+
+                When this value is specified the value of the object type
+                should be set to 'opaque'.
+
+                This field cannot be modified after creation. Any change attempts
+                will be silently discarded.";
+            type binary {
+                length 0..255;
+            }
+            default "";
+        }
+    }
+
+    grouping url-test-key {
+        leaf url-test {
+            description
+                "The value of this object specifies the name of the
+                URL test.";
+            type types-sros:named-item;
+        }
+    }
+
+    grouping url-test-config {
+        leaf drop-count {
+            description
+                 "The value of this object specifies the number of
+                  consecutive requests that must fail for the
+                  destination to be declared unreachable.";
+            type uint32 {
+                range 1..60;
+            }
+            default 3;
+        }
+
+        leaf hold-down {
+            description
+                "The value of this object specifies the amount of
+                time in seconds that the system should be held down
+                this test has marked it unreachable.";
+            type uint32 {
+                range 0..86400;
+            }
+            default 0;
+        }
+
+        leaf interval {
+            description
+                "The value of this object specifies the amount of
+                time in seconds between consecutive requests sent
+                to the far end host.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+
+        leaf timeout {
+            description
+                "The value of this object specifies the amount of
+                time in seconds that is allowed for receiving a
+                response from the far end host. If the response is
+                not received within this time the far end host is
+                considered unresponsive.";
+            type uint32 {
+                range 1..60;
+            }
+            default 1;
+        }
+
+        container url {
+            sros:nmi-container;
+            description "Set url and (or) http-version.";
+
+            leaf http-version {
+                sros-mci:name http-version;
+                description
+                    "The value of this object specifies HTTP Version to be
+                    used while performing the URL test. The system by
+                    default uses HTTP Version 1.1 until explicitly specified.";
+                type string;
+                default "1.1";
+
+                sros:error FILTER_WCCP_HTTP_VERSION_ERR {
+                    sros:if "http-version != ['1.1'|'1.0'|'']";
+                    sros:reason wrong-value;
+                }
+            }
+
+            leaf url {
+                sros-mci:name url;
+                description
+                    "The value of this object specifies the URL to be
+                    probed.";
+                type string;
+                default "";
+            }
+        }
+    }
+
+    grouping url-test-state {
+        leaf hold-down-remain {
+            config false;
+            description
+                "The value of this object indicates the amount of
+                time in seconds that the system will remain in held
+                down state before being used again.";
+            type uint32 {
+                range 0..86400;
+            }
+        }
+
+        leaf last-action {
+            config false;
+            description
+                "The value of this object indicates impact that the
+                last test probe had on the operational status of
+                the destination as maintained in 'redirect-policy-oper-state'.
+
+                If the last action was 'disable', the destination
+                may not be used for ulr-test-hold-down' seconds.";
+            type types-filter:redirect-policy-test-last-action;
+        }
+
+        leaf last-action-time {
+            config false;
+            description
+                "The value of this object indicates the time stamp
+                when this test received a response for a probe sent out.";
+            type yang:timestamp;
+          }
+
+        leaf last-priority-change {
+            config false;
+            description
+                "The value of this object indicates the priority
+                change that the last test probe made to the operational
+                priority of the destination. This object is significant
+                only if the value of the object url-test-last-action is
+                'enable'. Otherwise it has no significance and it's
+                holding the value '0'.";
+            type int32 {
+                range -255..255;
+            }
+        }
+
+        leaf last-return-code {
+            config false;
+            description
+                "The value of this object indicates the return code
+                received in the last response.";
+            type uint32;
+        }
+
+    }
+
+    grouping return-code-key {
+        leaf low-return-code {
+            description
+                "The value of this object specifies the lower
+                return code of the range specified by this entry.";
+            type uint32;
+        }
+
+        leaf high-return-code {
+            description
+                "The value of this object specifies the higher
+                return code of the range specified by this entry.";
+            type uint32;
+        }
+
+    }
+
+    grouping return-code-config {
+        leaf action {
+            description
+                "The value of this object specifies the action which
+                will be taken on the operational priority of a destination
+                (redirect-policy destination dynamic-priority), if the
+                received object OID and value matches the values defined
+                in 'redirect-policy destination url-test return-value'.
+
+                If url-resp-priority-change is 0 the value of this object
+                will be set to 'disable'.";
+
+            type types-filter:redirect-policy-test-response-action;
+            default "disable";
+
+            sros:error FILTER_WCCP_OUT_OF_RANGE {
+                sros:if "not ($this = [increase | decrease | disable])";
+                sros:reason wrong-value;
+            }
+        }
+
+        leaf priority {
+            description
+                "If the url-resp-action is either 'increase' or
+                'decrease',the value of this object specifies
+                the offset to be applied to the destination base
+                priority (redirect-policy destination shutdown)
+                in order to compute the 'redirect-policy destination
+                dynamic-priority' as a result of this test.
+
+                If 'url-resp-action' is 'disable', 'url-resp-priority-change'
+                will be forced to 0. Any change to 'url-resp-priority-change'
+                will be silently discarded in this case.
+
+                Setting this object to 0 will cause the value of
+                'url-resp-action' to be set to 'disable'.";
+
+            type uint32 {
+                range 0..255;
+            }
+            default 0;
+        }
+    }
+
+    grouping unicast-rt-test-state {
+         leaf last-action {
+            config false;
+            description
+                "The value of this object indicates an impact that the
+                last message from RTM module had on the value of the
+                object 'redirect-policy destination oper-state'.";
+            type types-filter:redirect-policy-test-last-action;
+         }
+
+         leaf last-action-time {
+            config false;
+            description
+                "The value of this object indicates the time stamp
+                when the last update from RTM module for this
+                destination was received.";
+            type yang:timestamp;
+         }
+    }
+
+    grouping log-info-key {
+        leaf log-id {
+            description "The filter log identifier.";
+            type types-filter:filter-log-id;
+        }
+    }
+
+    grouping log-info-auto-create {
+        sros:auto-create 101 {
+            sros:set-leaf description { sros:default-value "Default filter log";}
+        }
+    }
+
+    grouping log-info-config {
+        container destination {
+            sros:nmi-container;
+            sros:cli-leaf;
+            description "Specifies the destination of the filter log";
+
+            leaf type {
+                sros-mci:always-deliver { sros:if "($modified(limit) or $modified(syslog-id))" ; }
+                description
+                    "Specifies the type of destination to be used.";
+                type enumeration {
+                    enum memory { value 1; }
+                    enum syslog { value 2; }
+                }
+                default memory;
+            }
+
+            leaf limit {
+                sros-mci:name destination-memory;
+                description
+                    "Specifies the maximum number of memory entries that the log can store.";
+                type uint32 {
+                    range 0..50000;
+                }
+                sros:dynamic-default 0 { sros:if "type = syslog"; }
+                default 1000;
+                sros:error FILTER_LOG_INVALID_DEST {
+                    sros:if "$this != $default and type = syslog";
+                    sros:reason inconsistent-value;
+                }
+                sros:auto-reset {
+                    sros:if "($modified(type) and (type != memory))";
+                }
+            }
+
+            leaf syslog-id {
+                sros-mci:name destination-syslog;
+                 description
+                     "Specifies the syslog Id to be used as destination.";
+                type uint32;
+                default 0;
+                sros:error FILTER_LOG_INVALID_DEST {
+                    sros:if "$this != $default and type = memory";
+                    sros:reason inconsistent-value;
+                }
+                sros:auto-reset {
+                    sros:if "($modified(type) and (type != syslog))";
+                }
+            }
+        }
+
+        leaf description {
+            description
+                "Specifies the description for this filter log";
+            type types-sros:description;
+        }
+
+        leaf shutdown {
+            description
+                "Specifies whether the logging is enabled or not for this filter";
+            type types-sros:shutdown;
+            default false;
+         }
+
+        container summary {
+            sros:nmi-container;
+            description "Summarization of filter log entries";
+
+            leaf shutdown {
+                description
+                    "Specifies whether or not summarization of filter log entries is performed";
+                type types-sros:secondary-shutdown;
+                default true;
+                sros:auto-reset {
+                    sros:if "log/destination/type = memory";
+                }
+                sros:error FILTER_LOG_INVALID_DEST {
+                    sros:if "$this != $default and log/destination/type = memory";
+                    sros:reason inconsistent-value;
+                }
+            }
+
+            leaf summary-crit {
+                description "Filter log entries summarization definition";
+                type types-filter:filter-log-summary-criterium;
+                default src-addr;
+                sros:auto-reset {
+                    sros:if "log/destination/type != syslog";
+                }
+                sros:error FILTER_LOG_INVALID_DEST {
+                    sros:if "$this != $default and log/destination/type = memory";
+                    sros:reason inconsistent-value;
+                }
+            }
+        }
+
+        leaf wrap-around {
+            description
+                "Specifies whether wrap-arounds is enabled or not.";
+            type boolean;
+            default true;
+        }
+    }
+
+    grouping ipvx-prefix-list-key {
+        leaf prefix-list-name {
+            sros-mci:name name;
+            description
+                "The prefix-list-name specifies the name given to this prefix list.";
+            type types-sros:named-item;
+        }
+    }
+
+    grouping ipvx-prefix-list-config {
+        description
+            "Common properties for all filter match list prefix lists.";
+
+        leaf description {
+            description
+                "Specifies a description for this row.";
+            type types-sros:description;
+        }
+
+    }
+
+    grouping apply-path-bgp-key {
+        leaf index {
+            description
+                "This object specifies an index for this list.";
+            type uint32 {
+                range 1..16;
+            }
+        }
+    }
+
+    grouping apply-path-bgp-config {
+        description
+            "Specifies a filter match list IPvx prefix list path.";
+
+        leaf group {
+            description
+                "This object specifies a regular expression.
+                The usage of this object depends on the source
+                specified by 'apply-path-source'.
+
+                If 'apply-path-source' is 'bgp', this object
+                specifies a match condition on the group-name of
+                configured bgp peers.";
+            type types-sros:regular-expression;
+            mandatory true;
+        }
+
+        leaf neighbor {
+            description
+                "This object specifies a regular expression.
+                The usage of this object depends on the source
+                specified by 'apply-path-source'.
+
+                If 'apply-path-source' is 'bgp', this object
+                specifies a match condition on the IP or IPv6
+                address of configured bgp peers.";
+            type types-sros:regular-expression;
+            mandatory true;
+        }
+
+        leaf router {
+            description
+                "Specifies the target routing instance as part of
+                apply-path bgp-peers.";
+            type types-sros:vrtr-id;
+            default 1;
+//               type leafref {
+//                       path "";  // TODO
+//                   }
+        }
+    }
+
+    grouping filter-ip-apply-path-ntp-serv-key {
+
+        leaf criterion-index {
+            description
+                "This object specifies an index of the selection criterion.";
+            type uint32 {
+                range 1..16;
+            }
+        }
+    }
+
+    grouping filter-ip-apply-path-ntp-serv-config {
+
+        leaf address {
+            description
+                "This object specifies a match condition on the IP address of
+                configured NTP servers.";
+            type types-sros:regular-expression;
+            default "";
+        }
+
+        leaf router {
+            description
+                "Specifies the target routing instance as part of the apply-path NTP servers.";
+            type types-sros:vrtr-id;
+            default 1;
+        }
+    }
+
+    grouping filter-ip-apply-path-ntp-serv-state {
+
+        leaf last-changed {
+            config false;
+            description
+                "The value of this object indicates the timestamp of last change to this row.";
+            type types-sros:last-changed;
+        }
+    }
+    grouping filter-ip-apply-path-sntp-serv-key {
+
+        leaf criterion-index {
+            description
+                "This object specifies an index of the selection criterion.";
+            type uint32 {
+                range 1..16;
+            }
+        }
+
+    }
+    grouping filter-ip-apply-path-sntp-serv-config {
+
+        leaf address {
+            description
+                "This object specifies a match condition on the IP address of
+                configured SNTP servers.";
+            type types-sros:regular-expression;
+            mandatory true;
+        }
+    }
+
+    grouping filter-ip-apply-path-sntp-serv-state {
+
+        leaf last-changed {
+            config false;
+            description
+                "The value of this object indicates the timestamp of last change to this row.";
+            type types-sros:last-changed;
+        }
+    }
+
+    grouping filter-ipv6-apply-path-ntp-serv-key {
+
+        leaf criterion-index {
+            description
+                "This object specifies an index of the selection criterion.";
+            type uint32 {
+                range 1..16;
+            }
+        }
+
+    }
+    grouping filter-ipv6-apply-path-ntp-serv-config {
+
+        leaf address {
+            description
+                "This object specifies a match condition on the IPv6 address of
+                configured NTP servers.";
+            type types-sros:regular-expression;
+            default "";
+        }
+
+        leaf router {
+            description
+                "Specifies the target routing instance as part of the apply-path NTP servers.";
+            type types-sros:vrtr-id;
+            default 1;
+        }
+    }
+
+    grouping filter-ipv6-apply-path-ntp-serv-state {
+
+        leaf last-changed {
+            config false;
+            description
+                "The value of this object indicates the timestamp of last change to this row.";
+            type types-sros:last-changed;
+        }
+    }
+
+    grouping ipvx-prefix-key {
+        description
+            "Specifies a filter match list IPvx prefix.";
+
+        leaf prefix {
+            description
+                "The value of this object specifies the IP or IPv6
+                prefix of this prefix list entry.";
+            type types-sros:ip-prefix;
+        }
+    }
+
+    grouping port-list-key {
+        leaf port-list-name {
+            description
+                "This object specifies the name
+                given to this port list.";
+            type types-sros:named-item;
+        }
+    }
+
+    grouping port-list-config {
+        leaf description {
+            description
+                "This object specifies a description
+                for port-list.";
+            type types-sros:description;
+        }
+    }
+
+    grouping match-list-port-list-port-key {
+        leaf low-port {
+            description
+                "This object specifies the lower value for the TCP/UDP
+                port range. A value assigned to this object must be
+                less than or equal to the value assigned to the
+                corresponding object high-port.";
+            type int32 {
+                range 0|1..65535;
+            }
+        }
+
+        leaf high-port {
+            description
+                "This object specifies the higher value for the TCP/UDP
+                 port range. A value assigned to this object must be
+                 greater than or equal to the value assigned to the
+                 corresponding object low-port.";
+            type int32 {
+                range 0|1..65535;
+            }
+        }
+    }
+
+    grouping ipvx-filter-entry-action-key {
+        leaf priority {
+            description
+                "Specifies a unique identifier of an action within the filter entry.";
+            type types-filter:primary-or-secondary;
+        }
+    }
+
+    grouping ip-filter-entry-action-config {
+        uses ipvx-filter-entry-action-config;
+        container drop-params {
+            sros:nmi-container;
+            description
+                "Set IP-filter action to drop.";
+
+            container ttl {
+                sros:nmi-container;
+                description
+                    "Time-to-live field of IPv4 header of an IP packet. ";
+
+                uses hop-limit-or-ttl-for-drop;
+            }
+
+            container packet-length {
+                sros:nmi-container;
+                description
+                    "Total length field of IPv4 header of an IP packet.";
+
+                uses payload-or-packet-length-for-drop;
+            }
+        }
+
+        container forward-params {
+            sros:nmi-container;
+            description
+                "IP filter action forward criteria.";
+
+            uses ipvx-filter-entry-action-forward;
+
+            container esi {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "IP/IPv6 filter action forward ESI criteria.";
+
+                leaf sf-ip {   //type translator needed
+                    description
+                        "Specifies the IP address of the service function toward which
+                         traffic is steered.";
+                    type types-sros:ip-address;
+                    default "0.0.0.0";
+                    sros:auto-reset {
+                        sros:if "$modified(action/type) and (action/type != forward-esi-l3)";
+                    }
+                }
+
+                uses ipvx-filter-entry-action-forward-esi-common;
+
+            }
+
+            container next-hop {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "IP filter action forward nexthop criteria.";
+
+                leaf ip-address {
+                    description
+                        "Specifies the IP/IPv6 address of the nexthop to which the packet
+                         should be forwarded if it hits this filter entry.";
+                    type types-sros:ip-address;
+                    default "0.0.0.0";
+                    sros:auto-reset {
+                        sros:if "$modified(action/type) and (action/type != [forward-next-hop-router|forward-next-hop])";
+                    }
+                    sros:error FILTER_IPPARAMS_Action_Nexthop_Inv_IpAddr { // DTS183130
+                        sros:if "$modified(action/type) and (action/type = [forward-next-hop-router|forward-next-hop]) and $this = $default";
+                        sros:reason inconsistent-value;
+                    }
+                }
+
+                uses ipvx-filter-entry-action-forward-next-hop-common;
+
+                leaf interface {
+                    description
+                        "Specifies the interface name for the nexthop to which the packet
+                         should be forwarded if it hits this filter entry.";
+                    type types-sros:named-item-or-empty;
+                    default "";
+//                                type leafref {
+//                                    path       //TODO
+//                                }
+                    sros:auto-reset {
+                        sros:if "$modified(action/type) and (action/type != forward-next-hop-interface)";
+                    }
+                }
+            }
+
+            container vprn-target {
+                sros:feature "TIMOS_FEATURE_FLTR_FORWARD_VPRN_TARGET";
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "IP/IPv6 filter action forward vprn-target criteria.";
+
+                leaf adv-prefix {
+                    description
+                        "Specifies the advertised IP prefix for the target destination.";
+                    type types-sros:ipv4-prefix;
+                    default "";
+                    sros:auto-reset {
+                        sros:if "$modified(action/type) and (action/type != forward-vprn-target)";
+                    }
+                }
+                uses ipvx-filter-entry-action-forward-vprn-target-common;
+            }
+        }
+
+        container nat-params {
+            sros:nmi-container;
+            description
+                "Specifies the NAT parameters to be used when the value of action is 'nat'.";
+
+            leaf nat-policy {
+                description
+                    "Specifies the name of the NAT policy to be used when the value of action is 'nat'.";
+                type types-sros:named-item-or-empty;
+                default "";
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != nat)";
+                }
+            }
+        }
+
+        container rate-params {
+            sros:nmi-container;
+            description
+                "Set rate limit parameters for the traffic matching the entry";
+
+            leaf limit {
+                description
+                    "Specifies the rate to which the traffic matching the filter entry will be limited.";
+                type types-filter:rate-limit;
+                default 0;
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != rate-limit)";
+                }
+            }
+
+            container ttl {
+                sros:nmi-container;
+                description
+                    "Time-to-live field of IPv4 header of an IP packet. ";
+
+                uses hop-limit-or-ttl-for-rate-limit;
+            }
+
+            container packet-length {
+                sros:nmi-container;
+                description
+                    "Total length field of IPv4 header of an IP packet.";
+
+                uses payload-or-packet-length-for-rate-limit;
+            }
+        }
+    }
+
+    grouping ipvx-filter-entry-action-config {
+        leaf type {
+            description
+                "Specifies the action to be taken on a packet matching the filter entry.";
+            type types-filter:ipvx-filter-entry-action;
+            default drop;
+            // TODO change the condition to more specific fields
+            sros:error FILTER_OPENFLOW_INVALID_ACT_PACKET_IN {
+                sros:if "$modified($this) and ($this = openflow-packet-in)";
+                sros:reason inconsistent-value;
+            }
+        }
+
+        container http-redirect-params {
+            sros:nmi-container;
+            description
+                "Specifies the URL to redirect to, when the value of action is 'httpRedirect'.";
+
+            leaf url {
+                description
+                    "Specifies the URL to redirect to.";
+                type types-sros:http-redirect-url;
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != http-redirect)";
+                }
+            }
+
+            leaf allow-radius-override {
+                description
+                    "Specifies whether or not the value of http-redirect can be over-ridden
+                     by a Radius VSA.";
+                type boolean;
+                default false;
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != http-redirect)";
+                }
+            }
+        }
+
+        container extended-action {
+            sros:nmi-container;
+            sros:cli-leaf;
+            description
+                "Specifies the extended action to be taken on a packet along with action
+                 specified by action type.";
+
+            leaf type {
+                description
+                    "Specifies the extended action type. ";
+                type types-filter:ipvx-filter-entry-extended-action;
+                default none;
+            }
+
+            container remark-params {
+                sros:nmi-container;
+                description
+                    "Remarking parameters for packets matching the entry.";
+
+                leaf dscp {                     //type-translator needed
+                    description
+                        "Activate DSCP remarking for packets matching the entry";
+                    type types-sros:named-item-or-empty;
+                    default "";
+                    sros:auto-reset {
+                        sros:if "$modified(action/extended-action/type) and (action/extended-action/type != remark-dscp)";
+                    }
+                }
+            }
+        }
+
+        container remark-params {
+            sros:nmi-container;
+            description
+                "Remarking parameters for packets matching the entry.";
+
+            leaf dscp {                     //type-translator needed
+                description
+                    "Activate DSCP remarking for packets matching the entry";
+                type types-sros:named-item-or-empty;
+                default "";
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != remark-dscp)";
+                }
+            }
+        }
+
+        leaf active-state {
+            description
+                "Indicates the entry row to be active/inactive";
+            type types-filter:filter-entry-row-status;
+            default inactive;
+        }
+    }
+
+    grouping ipvx-filter-entry-action-state {
+        leaf last-changed {
+            config false;
+            description
+                "The value of this object indicates the timestamp of
+                 last change to this row in ip/ipv6-filter-entry-action table.";
+            type types-sros:last-changed;
+        }
+
+        leaf pbr-target-status {
+            config false;
+            description
+                "Indicates the PBR target status.";
+            type types-filter:pbr-target-status;
+        }
+    }
+
+    grouping ipvx-filter-entry-action-forward {
+
+        leaf bonding-connection {
+            sros:feature "TIMOS_FEATURE_SUB_BONDING";
+            description
+                "Bonding connection identifier as specified under the bonding group-interface";
+            type types-sros:bonding-connection-id;
+            sros:auto-reset {
+                     sros:if "$modified(action/type) and (action/type != forward-bonding-connection)";
+            }
+        }
+
+        leaf lsp {                        //type translator needed
+            description
+                "Specifies the LSP name into which a packet should be forwarded
+                 if it hits this filter entry.";
+            type types-sros:named-item-or-empty;
+            default "";
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-lsp)";
+            }
+        }
+
+        leaf redirect-policy {
+            description
+                "Specifies the redirect policy to be used to determine the nexthop.";
+            type leafref {
+                path "/filter/redirect-policy/redirect-policy";
+            }
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-redirect-policy)";
+            }
+        }
+
+        leaf router {      //type translator needed
+            description
+                "Specifies the routing context in which the packet will be forwarded if it
+                 hits this filter entry.";
+            type types-services:vrtr-id-or-zero;
+            default 0;
+//            type leafref {
+//                  path "";  // TODO
+//            }
+            sros:auto-reset {
+                 sros:if "$modified(action/type) and (action/type != forward-router)";
+            }
+            sros:error FILTER_IPPARAMS_Action_mismatch {
+                sros:if "$modified($this) and $this != $default and (action/type != forward-router)";
+                sros:reason inconsistent-value;
+                sros:extra-text "Forward router id mismatch";
+            }
+        }
+
+        leaf sap {
+            description
+                "Configure SAP identifier.";
+            type types-sros:sap;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (not $modified($this))";
+            }
+        }
+
+        leaf sdp {
+            sros-mci:name forward-sdp;
+            description
+                "Configure SDP binding identifier of the destination for this filter entry.";
+            type types-services:sdp-bind-id;
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (not $modified($this))";
+            }
+        }
+    }
+
+    grouping ipv6-filter-entry-action-config {
+        uses ipvx-filter-entry-action-config;
+        container drop-params {
+            sros:nmi-container;
+            description
+                "Set IPv6-filter action to drop.";
+
+            uses hop-limit-and-payload-length-for-drop;
+        }
+
+        container forward-params {
+            sros:nmi-container;
+            description
+                "IPv6 filter action forward criteria.";
+
+            uses ipvx-filter-entry-action-forward;
+
+            container esi {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "IP/IPv6 filter action forward ESI criteria.";
+
+                uses ipv6-filter-entry-action-forward-esi;
+            }
+
+            container next-hop {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description
+                    "IPv6 filter action forward next-hop criteria.";
+
+                uses ipv6-filter-entry-action-forward-next-hop;
+            }
+
+            container vprn-target {
+                sros:feature "TIMOS_FEATURE_FLTR_FORWARD_VPRN_TARGET";
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "IP/IPv6 filter action forward vprn-target criteria.";
+
+                uses ipv6-filter-entry-action-forward-vprn-target;
+            }
+        }
+
+        container nat-params {
+            sros:nmi-container;
+            description
+                "Specifies the NAT parameters to be used when the value of action is 'nat'.";
+
+            leaf nat-type {
+                description
+                    "NAT subscriber type.";
+                type types-filter:nat-type;
+                default dslite;
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != nat)";
+                }
+            }
+
+            leaf nat-policy {
+                description
+                    "Specifies the name of the NAT policy to be used when the value of action is 'nat'.";
+                type types-sros:named-item-or-empty;
+                default "";
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != nat)";
+                }
+            }
+        }
+
+        container rate-params {
+            sros:nmi-container;
+            description
+                "Set rate limit parameters for the traffic matching the entry";
+
+            leaf limit {
+                description
+                    "Specifies the rate to which the traffic matching the filter entry will be limited.";
+                type types-filter:rate-limit;
+                default 0;
+                sros:auto-reset {
+                    sros:if "$modified(action/type) and (action/type != rate-limit)";
+                }
+            }
+
+            uses hop-limit-and-payload-length-for-rate-limit;
+        }
+    }
+
+    grouping mac-filter-key {
+        leaf filter-id {
+            description "The mac-filter policy unique identifier.";
+            type types-filter:filter-id;
+        }
+    }
+
+    grouping mac-filter-config {
+        leaf default-action {
+            description "The default action of the mac-filter policy";
+            type types-filter:filter-default-action;
+            default drop;
+        }
+
+        leaf description {
+            description "The description of the mac-filter policy";
+            type types-sros:description;
+        }
+
+        leaf filter-name {
+            description "The name of the mac-filter policy";
+            type types-sros:named-item-64-or-empty;
+            default "";
+        }
+
+        leaf scope {
+            description "The scope of the mac-filter policy";
+            type types-filter:filter-scope;
+            default template;
+        }
+
+        leaf type {
+            description "The type of the mac-filter policy";
+            type types-qos:mac-filter-type;
+            default normal;
+        }
+    }
+
+    grouping mac-filter-entry-key {
+
+        leaf entry-id {
+            description
+                "MAC filter entry index. Every MAC filter can have multiple
+                 entries, therefore every MAC filter entry is identified by
+                 the MAC filter-id and entry-id.";
+            type types-filter:entry-id;
+        }
+    }
+
+    grouping system-filter-ipv4-key {
+        description
+            "IPv4 filter id for active system filter policy.";
+
+        leaf filter-id {
+            description
+                "The ID of the IPv4 filter policy to be selected
+                as the active system filter policy.";
+            type leafref {
+                path "/filter/ip-filter/filter-id";
+            }
+        }
+    }
+
+    grouping system-filter-ipv6-key {
+        description
+            "IPv6 filter id for active system filter policy.";
+
+        leaf filter-id {
+            description
+                "The ID of the IPv6 filter policy to be selected
+                as the active system filter policy.";
+            type leafref {
+                path "/filter/ipv6-filter/filter-id";
+            }
+        }
+    }
+
+    grouping mac-filter-entry-action-key {
+        leaf action-id {
+            description
+                "Specifies a unique identifier of an action within the filter entry.";
+            type types-filter:filter-entry-action-id;
+        }
+    }
+
+    grouping mac-filter-entry-action-config {
+        leaf action {
+            description
+                "Specifies the action to be taken on a packet matching the filter entry.";
+            type types-filter:filter-entry-action;
+            default drop;
+        }
+
+        container forward {
+            sros:nmi-container;
+            description "MAC filter action forward criteria.";
+
+            container esi {
+                sros:nmi-container;
+                sros:cli-leaf;
+                description "MAC filter action forward ESI criteria.";
+
+                leaf esi-value {
+                    sros-mci:name forward-esi;
+                    description
+                        "Specifies the ethernet segment identifier (ESI) of the first ESI
+                        identified appliance in Nuage service chain.";
+                    type types-filter:filter-esi;
+                    default "AAAAAAAAAAAAAA==";
+                    sros:auto-reset {
+                        sros:if "$modified(entry-action/action) and (not $modified($this))";
+                    }
+                }
+
+                leaf service-id {
+                    description
+                        "Specifies the identifier of the VPLS used for VPN/DC connectivity.";
+                    type types-sros:service-id;
+                    default 0;
+                    sros:auto-reset {
+                        sros:if "$modified(entry-action/action) and (not $modified($this))";
+                    }
+                }
+            }
+
+            leaf sap {
+                description
+                    "Configure SAP identifier.";
+                type types-sros:sap;
+                sros:auto-reset {
+                    sros:if "$modified(entry-action/action) and (not $modified($this))";
+                }
+            }
+
+            leaf sdp {
+                sros-mci:name forward-sdp;
+                description
+                    "Configure SDP Binding identifier of the destination for MAC filter entry.";
+                type types-services:sdp-bind-id;
+                sros:auto-reset {
+                    sros:if "$modified(entry-action/action) and (not $modified($this))";
+                }
+            }
+        }
+
+        leaf http-redirect {
+            description
+                "Specifies the URL to redirect to, when the value of action is 'httpRedirect'.";
+            type types-sros:http-redirect-url;
+            sros:auto-reset {
+                sros:if "$modified(action) and (action != http-redirect)";
+            }
+        }
+
+        leaf rate-limit {
+            description
+                "Specifies the rate to which the traffic matching the filter entry will be limited.";
+            type types-filter:rate-limit;
+            default 0;
+            sros:auto-reset {
+                sros:if "$modified(entry-action/action) and (entry-action/action != rate-limit)";
+            }
+        }
+
+        leaf pbr-target-status {
+            config false;
+            description
+                "Indicates the PBR target status.";
+            type types-filter:pbr-target-status;
+        }
+
+        leaf active-state {
+            description
+                "Indicates the entry row to be active/inactive";
+            type types-filter:filter-entry-row-status;
+            default inactive;
+        }
+    }
+
+}

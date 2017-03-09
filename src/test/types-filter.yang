@@ -1,14 +1,12 @@
-module filter-types {
-    namespace "urn:nokia.com:sros:ns:yang:sr:filter-types";
-    prefix    "filter-types";
-    
+module types-filter {
+    namespace "urn:nokia.com:sros:ns:yang:sr:types-filter";
+    prefix    "types-filter";
+
     import sros-yang-builtins { prefix "sros"; }
 
     sros:content-summary "filter";
 
-    revision 2016-01-01 {
-            description "Initial revision";
-    }
+    sros:file-last-change "$Date$";
 
     typedef cpm-filter-action-or-default {
         type enumeration {
@@ -16,6 +14,7 @@ module filter-types {
             enum accept  { value 2; }
             enum queue   { value 3; }
             enum default { value 4; }
+            sros:implicit-default "none:0";
         }
     }
 
@@ -108,7 +107,7 @@ module filter-types {
         type uint32 {
             range 1..671154175;
         }
-    } 
+    }
 
     typedef entry-id {
         description
@@ -118,7 +117,19 @@ module filter-types {
         type entry-id-or-zero {
             range 1..65535;
         }
-    } 
+    }
+
+    typedef mac-frame-type {
+        description
+            "The frame type in a MAC address filter.";
+        type enumeration {
+            enum 802dot3       { value 0; }
+            enum 802dot2-llc   { value 1; }
+            enum 802dot2-snap  { value 2; }
+            enum ethernet-II   { value 3; }
+            //enum e802dot1ag    { value 4; } deprecate
+        }
+    }
 
     typedef dhcp-filter-match {
         description
@@ -181,23 +192,23 @@ module filter-types {
                                  the NAT function in the system.
             - reassemble    (6): packets matching the filter entry are forwarded to
                                  the packet REASSEMBLE function in the system.
-            - gtp-Lcl-brkout(7): packets matching the filter entry are broken out
+            - gtp-local-breakout(7): packets matching the filter entry are broken out
                                  locally from a GTP tunnel (and thereby bypass the
                                  mobile packet core). For packets that are not sent
                                  in the context of a GTP tunnel, this action is
                                  equivalent to 'forward'.
-            - forward-esi-L2(8): packets matching the filter entry are forwarded to
+            - forward-esi-l2(8): packets matching the filter entry are forwarded to
                                  ESI identified first appliance in Nuage service
                                  chain using EVPN-resolved VXLAN tunnel in
                                  the specified VPLS service.
-            - forward-esi-L3(9): packets matching the filter entry are forwarded to
+            - forward-esi-l3(9): packets matching the filter entry are forwarded to
                                  ESI/SF-IP identified first appliance in Nuage
                                  service chain using EVPN-resolved VXLAN tunnel over
                                  the configured VAS interface in the specified VPRN
                                  service.
             - of-packet-in (10): packets are sent to open-flow controller on
                                  a dedicated packet-in channel part of the main or
-                                 auxilirary connection. Only open-flow controller
+                                 auxiliary connection. Only open-flow controller
                                  can specify this action.";
         type enumeration {
             enum drop           { value 1; }
@@ -206,9 +217,9 @@ module filter-types {
             enum http-redirect  { value 4; }
             enum nat            { value 5; }
             enum reassemble     { value 6; }
-            enum gtp-lcl-brkout { value 7; }
-            enum forward-esi-L2 { value 8; }
-            enum forward-esi-L3 { value 9; }
+            enum gtp-local-breakout { value 7; }
+            enum forward-esi-l2 { value 8; }
+            enum forward-esi-l3 { value 9; }
             enum of-packet-in   { value 10; }
             enum unrecognized   { value 11; }
         }
@@ -289,7 +300,7 @@ module filter-types {
              - tcp-mss-adjust              (23): The value of TCP Maximum Segment Size (MSS)
                                                  option of packets matching the entry will be
                                                  set to the value specified by
-                                                 TIMETRA-VRTR-MIB.mib::tmnxVrtrMssAdjSegmentSize
+                                                 tmnxVrtrMssAdjSegmentSize
                                                  if the value of the option exceeds that
                                                  value or the option is not present at all.
              - remark-dscp                 (24): DSCP value of packets matching the entry
@@ -305,7 +316,21 @@ module filter-types {
                                                  packet's IPv4 header or value of 'Hop-Limit'
                                                  field of packet's IPv6 header
                                                  meeting the configured condition is limited
-                                                 to value specified by rate-limit.";
+                                                 to value specified by rate-limit.
+             $feature (TIMOS_FEATURE_FLTR_DROP_EXTRACTED_TRAFFIC) {
+             - drop-extracted-traffic      (27): Traffic extracted to CPM will be dropped.
+             }
+             $feature (TIMOS_FEATURE_FLTR_FORWARD_VPRN_TARGET) {
+             - forward-vprn-target         (28): A packet matching the entry will be
+                                                 forwarded using vprn target.
+             }
+             $feature (TIMOS_FEATURE_SUB_BONDING) {
+             - forward-bonding-connection  (29): In a bonding context indicates the packet should be
+                                                 forwarded over the given connection if that
+                                                 connection is available. Outside a bonding context
+                                                 this is equivalent to an unqualified forward action.
+             }";
+
         type enumeration {
             enum drop                        { value 1; }
             enum forward                     { value 2; }
@@ -331,6 +356,9 @@ module filter-types {
             enum remark-dscp                 { value 24; }
             enum rate-limit-packet-length    { value 25; }
             enum rate-limit-ttl              { value 26; }
+            enum drop-extracted-traffic      { value 27; sros:feature "TIMOS_FEATURE_FLTR_DROP_EXTRACTED_TRAFFIC"; }
+            enum forward-vprn-target         { value 28; sros:feature "TIMOS_FEATURE_FLTR_FORWARD_VPRN_TARGET"; }
+            enum forward-bonding-connection  { value 29; sros:feature "TIMOS_FEATURE_SUB_BONDING"; }
         }
     }
 
@@ -420,6 +448,7 @@ module filter-types {
         type enumeration {
             enum dslite    { value 3; }
             enum nat64     { value 4; }
+            sros:implicit-default "none:0";
         }
     }
 
@@ -484,8 +513,10 @@ module filter-types {
            T (ESI Type) is a 1-octet field (most significant octet) that
            specifies the format of the remaining nine octets (ESI Value).
            ESI type can be one of the values 0x00-0x05.";
-        type binary {
-            length "10";
+        type string {
+            sros:syntax binary {
+                sros:size 10;
+            }
         }
     }
 
@@ -506,12 +537,15 @@ module filter-types {
           - up                (2): PBR target is known by the system and can be
                                    used for forwarding the traffic.
           - down              (3): PBR target is known by the system but can't be
-                                   used for forwarding the traffic.";
+                                   used for forwarding the traffic.
+          - router-specific   (4): PBR target status depends on service where filter
+                                   is applied.";
         type enumeration {
             enum unknown        { value 0; }
             enum does-not-exist { value 1; }
             enum up             { value 2; }
             enum down           { value 3; }
+            enum router-specific { value 4; }
         }
     }
 
@@ -542,15 +576,102 @@ module filter-types {
         }
      }
 
-    typedef ip-match-protocol {
+    typedef ipv4-match-protocol {
         description
             "IP protocol number. Well known protocol numbers include ICMP(1),
              TCP(6), UDP(17).
 
              -1 means value not set.
              -2 indicates protocol wildcard for UDP and TCP.";
-        type int32 {
-            range -2|-1|0..255;
+        type union {
+             type int32 {
+                range -2|-1|0..255;
+             }
+             type enumeration {
+                 enum "*"         { value -2; }
+                 enum none        { value -1; }
+                 enum icmp        { value 1; }
+                 enum igmp        { value 2; }
+                 enum ip          { value 4; }
+                 enum tcp         { value 6; }
+                 enum egp         { value 8; }
+                 enum igp         { value 9; }
+                 enum udp         { value 17; }
+                 enum rdp         { value 27; }
+                 enum ipv6        { value 41; }
+                 enum ipv6-route  { value 43; }
+                 enum ipv6-frag   { value 44; }
+                 enum idrp        { value 45; }
+                 enum rsvp        { value 46; }
+                 enum gre         { value 47; }
+                 enum ipv6-icmp   { value 58; }
+                 enum ipv6-no-nxt { value 59; }
+                 enum ipv6-opts   { value 60; }
+                 enum iso-ip      { value 80; }
+                 enum eigrp       { value 88; }
+                 enum ospf-igp    { value 89; }
+                 enum ether-ip    { value 97; }
+                 enum encap       { value 98; }
+                 enum pnni        { value 102; }
+                 enum pim         { value 103; }
+                 enum vrrp        { value 112; }
+                 enum l2tp        { value 115; }
+                 enum stp         { value 118; }
+                 enum ptp         { value 123; }
+                 enum isis        { value 124; }
+                 enum crtp        { value 126; }
+                 enum crudp       { value 127; }
+                 enum sctp        { value 132; }
+             }
+        }
+        reference
+            "http://www.iana.org/assignments/protocol-numbers";
+    }
+
+    typedef ipv6-match-protocol {
+        description
+            "IP protocol number. Well known protocol numbers include ICMP(1),
+            TCP(6), UDP(17).
+
+                -1 means value not set.
+                -2 indicates protocol wildcard for UDP and TCP.";
+        type union {
+            type int32 {
+                range -2|-1|1..42|45..49|52..59|61..255;
+            }
+            type enumeration {
+                enum "*"         { value -2; }
+                enum none        { value -1; }
+                enum icmp        { value 1; }
+                enum igmp        { value 2; }
+                enum ip          { value 4; }
+                enum tcp         { value 6; }
+                enum egp         { value 8; }
+                enum igp         { value 9; }
+                enum udp         { value 17; }
+                enum rdp         { value 27; }
+                enum ipv6        { value 41; }
+                enum idrp        { value 45; }
+                enum rsvp        { value 46; }
+                enum gre         { value 47; }
+                enum ipv6-icmp   { value 58; }
+                enum ipv6-no-nxt { value 59; }
+                enum iso-ip      { value 80; }
+                enum eigrp       { value 88; }
+                enum ospf-igp    { value 89; }
+                enum ether-ip    { value 97; }
+                enum encap       { value 98; }
+                enum pnni        { value 102; }
+                enum pim         { value 103; }
+                enum vrrp        { value 112; }
+                enum l2tp        { value 115; }
+                enum stp         { value 118; }
+                enum ptp         { value 123; }
+                enum isis        { value 124; }
+                enum crtp        { value 126; }
+                enum crudp       { value 127; }
+                enum sctp        { value 132; }
+            }
         }
         reference
             "http://www.iana.org/assignments/protocol-numbers";
@@ -559,12 +680,13 @@ module filter-types {
     typedef item-match {
         description
             "when set to off, the item is not matched.
-             when set to false, packets without the item match the filter.
-             when set to true, packets with the item match the filter.";
+            when set to false, packets without the item match the filter.
+            when set to true, packets with the item match the filter.";
         type enumeration {
             enum off    { value 1; }
             enum false  { value 2; }
             enum true   { value 3; }
+            sros:implicit-default "none:0";
         }
     }
 

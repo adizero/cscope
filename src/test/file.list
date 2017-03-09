@@ -3,7 +3,7 @@
 #./service_aware_filter.tcl
 #./filter_actionFwdRtr_tests.tcl
 #./flowspec_vprnTests.tcl
-
 #./setpdu.c
-filter-types.yang
-timetra-subscriber-mgmt-mib.yang
+#timetra-subscriber-mgmt-mib.yang
+types-filter.yang
+filter.yang

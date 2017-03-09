@@ -32,7 +32,7 @@
  =========================================================================*/
 
 
-#define DEBUG_LOGS 0
+#define DEBUG_LOGS 1
 
 
 /*	cscope - interactive C symbol cross-reference
@@ -169,15 +169,15 @@ tcl_comment "#"[^\n]*\n
 
 yang_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
 yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type")
-yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"key"|"grouping"|{yang_sros_global_type})
+yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"leaf-list"|"key"|"grouping"|"identity"|"notification"|"rpc"|{yang_sros_global_type})
 yang_comment "//"[^\n]*\n
 
-/*
 c_function_definition {ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]
 c_function_call {ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*
-*/
+/*
 c_function_definition {wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))
 c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
+*/
 
 /* flex options: stack of start conditions, and don't use yywrap() */
 %option stack
@@ -614,6 +614,7 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 	/* TODO recognize module/submodule + imports to generate global def (maybe more than one at once) and identifiers */
 
     /*first = 0;*/
+	first = last;
     while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
         /*trac("!!!!YANG first: %d\n", first);*/
         first++;
@@ -628,20 +629,20 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
     }
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-        if (my_yytext[last] == ':')
-        {
-            if (last+1 < my_yyleng)
-            {
-                first = last+1;
-            }
-        }
+///        if (my_yytext[last] == ':')
+///        {
+///            if (last+1 < my_yyleng)
+///            {
+///                first = last+1;
+///            }
+///        }
         /*trac("!!!!YANG last: %d\n", last);*/
         last++;
     }
-    yyless(last);
-    yy_set_bol(0);
+    ///yyless(last);
+    ///yy_set_bol(0);
     
-    my_yyleng = last;
+    //my_yyleng = last;
     trac("!!!!YANG token (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
    
     /*yyless(0);
@@ -667,17 +668,17 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
     trac("!!!!YANG0 token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-        if (my_yytext[last] == ':')
-        {
-            if (last+1 < my_yyleng)
-            {
-                first = last+1;
-            }
-        }
+///        if (my_yytext[last] == ':')
+///        {
+///            if (last+1 < my_yyleng)
+///            {
+///                first = last+1;
+///            }
+///        }
         trac("!!!!YANG0 last: %d\n", last);
         last++;
     }
-    my_yyleng = last;
+    //my_yyleng = last;
     trac("!!!!YANG0 token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
     return(IDENT);
 }
@@ -692,34 +693,36 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
             /* NOTREACHED */
         }
 
-({ws}+|{ws}*\({ws}*){yang_identifier} {
+({ws}+|{ws}*\({ws}*|:){yang_identifier} {
     trac("!!!!YANG IDENTIFIER\n");
     my_yymore();
-    trac("!!!!YANG token (line %d)[len: %d]: %d - %s\n", myylineno, my_yyleng, first, &my_yytext[first]);
-    //first = 1;
+    trac("!!!!YANG token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    first = last;
     /*skip over previous new line ?, TODO only if not first line ?*/
-    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(') {
-        /*trac("!!!!YANG first: %d\n", last);*/
-        first++;
-    }
-    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(')) {
-        /*trac("!!!!YANG first: %d\n", first);*/
+///    while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t' && my_yytext[first] != '(' && my_yytext[first] != ':') {
+///        trac("!!!!YANG first walking until specials: %d\n", last);
+///        first++;
+///    }
+    while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t' || my_yytext[first] == '(' || my_yytext[first] == ':')) {
+        trac("!!!!YANG first walking specials: %d\n", first);
         first++;
     }
     last = first;
     while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-        if (my_yytext[last] == ':')
-        {
-            if (last+1 < my_yyleng)
-            {
-                first = last+1;
-            }
-        }
-        /*trac("!!!!YANG last: %d\n", last);*/
+///        if (my_yytext[last] == ':')
+///        {
+///            if (last+1 < my_yyleng)
+///            {
+///				//last++;
+///                first = last;
+///				break;
+///            }
+///        }
+        trac("!!!!YANG last: %d\n", last);
         last++;
     }
-    my_yyleng = last;
-    trac("!!!!YANG token (line %d)[len: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
+    //my_yyleng = last;
+    trac("!!!!YANG token (line %d)[my_yyleng: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
     return(IDENT);
 }
 
