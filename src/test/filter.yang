@@ -1088,7 +1088,7 @@ submodule filter {
                  match this entry. The value zero indicates that logging
                 is disabled.";
             type leafref {
-                path "/filter/log/log-id";
+                path "";
             }
         }
 
@@ -1775,7 +1775,7 @@ submodule filter {
                 "Specifies the log to use for packets that match
                  this entry. The value zero indicates that logging is disabled.";
             type leafref {
-                path "/filter/log/log-id";
+                path "/log-id";
             }
         }
 
@@ -2070,7 +2070,7 @@ submodule filter {
             description
                 "Specifies ip-prefix-list used as match criterion.";
             type leafref {
-                path "/filter/match-list/ipv6-prefix-list/prefix-list-name";
+                path "/filter/match-list/ipv6-prefix-list/prefix-list-name/";
             }
             sros:auto-reset {
                 sros:if "$modified(ipv6-address-and-mask-or-prefix) and (not $modified($this))";
