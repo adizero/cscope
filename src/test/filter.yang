@@ -1088,7 +1088,7 @@ submodule filter {
                  match this entry. The value zero indicates that logging
                 is disabled.";
             type leafref {
-                path "";
+                path       ""                  	;
             }
         }
 
@@ -2070,7 +2070,8 @@ submodule filter {
             description
                 "Specifies ip-prefix-list used as match criterion.";
             type leafref {
-                path "/filter/match-list/ipv6-prefix-list/prefix-list-name/";
+                path                  "/filter/match-list/ipv6-prefix-list/prefix-list-name/"   
+					;
             }
             sros:auto-reset {
                 sros:if "$modified(ipv6-address-and-mask-or-prefix) and (not $modified($this))";
@@ -2133,7 +2134,8 @@ submodule filter {
             description
                 "Specifies ip-prefix-list used as match criterion.";
             type leafref {
-                path "/filter/match-list/ip-prefix-list/prefix-list-name";
+                path    "/filter/match-list/ip-prefix-list/prefix-list-name"  
+					;
             }
             sros:auto-reset {
                 sros:if "$modified(ip-address-and-mask-or-prefix) and (not $modified($this))";
@@ -2206,7 +2208,8 @@ submodule filter {
                 non-default value for the object port-list is
                 rejected by the system";
             type leafref {
-                path "/filter/match-list/port-list/port-list-name";
+                path 
+					"/filter/match-list/port-list/port-list-name";
             }
             sros:auto-reset {
                 sros:if "($modified(start) and start != $default) or
@@ -4091,6 +4094,17 @@ submodule filter {
                 "Specifies the redirect policy to be used to determine the nexthop.";
             type leafref {
                 path "/filter/redirect-policy/redirect-policy";
+            }
+            sros:auto-reset {
+                sros:if "$modified(action/type) and (action/type != forward-redirect-policy)";
+            }
+        }
+
+        leaf redirect-policy2 {
+            description
+                "Specifies the redirect policy to be used to determine the nexthop.";
+            type leafref {
+                path "redirect-policy2";
             }
             sros:auto-reset {
                 sros:if "$modified(action/type) and (action/type != forward-redirect-policy)";

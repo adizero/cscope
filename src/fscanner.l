@@ -32,7 +32,7 @@
  =========================================================================*/
 
 
-#define DEBUG_LOGS 1
+#define DEBUG_LOGS 0
 
 
 /*	cscope - interactive C symbol cross-reference
@@ -107,8 +107,6 @@ static  BOOL one_shot_not_global_flag;  /* resets to false after one usage */
 static  BOOL one_shot_typedef;  /* only one typedef new identifier after one typedef keyword, unless e/s/u */
 static  BOOL mib_was_in_dquote;  /* used for .mib files only (.if,.else,.endif blocks inside comments) */
 static  BOOL yang_was_in_dquote;  /* used for .yang files only (.if,.else,.endif blocks inside comments) */
-static	BOOL yang_path_bool;  /* yang path (used for leafref) */
-static	int	start_string_pos;
 
 #define MAX_ESU_IDENT_LEN 255
 char stored_esu_ident[MAX_ESU_IDENT_LEN+1];  //max length of e/s/u identifier
@@ -175,12 +173,12 @@ yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snm
 yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"leaf-list"|"key"|"grouping"|"identity"|"notification"|"rpc"|{yang_sros_global_type})
 yang_comment "//"[^\n]*\n
 
+/*
 c_function_definition {ws}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()])*\)([()]|{wsnl})*[:a-zA-Z_#{]
 c_function_call {ws}*\(([*&[\]=,.]|{identifier}|{number}|{wsnl})*
-/*
+ */
 c_function_definition {wsnl}*\(({wsnl}|{identifier}|{number}|[*&[\]=,.:()+])*\)([()]|{wsnl})*([:a-zA-Z_#{]|(({identifier})+({identifier}|{number}|[*;[\],+]|{wsnl})*[:a-zA-Z_#{]))
 c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
-*/
 
 /* flex options: stack of start conditions, and don't use yywrap() */
 %option stack
@@ -690,22 +688,6 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
     trac("!!!!YANG GLOBAL TYPE\n");
     my_yymore();
     trac("!!!!YANG token (line %d): %d - %s\n", myylineno, first, my_yytext);
-    /*skip over previous new line ?, TODO only if not first line ?*/
-    /*
-    BOOL ictl_class = NO;
-    BOOL ictl_fdef = NO;
-    if (strncmp(my_yytext, "itcl::class", strlen("itcl::class") == 0))
-    {
-        ictl_class = YES;
-    }
-    else
-    {
-        if (strncmp(my_yytext, "itcl::body", strlen("itcl::body") == 0))
-        {
-            ictl_fdef = YES;
-        }
-    }
-    */
 
 	/* TODO recognize module/submodule + imports to generate global def (maybe more than one at once) and identifiers */
 
@@ -784,10 +766,6 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 }
 
 \"		{	/* string constant */
-			if (yang_path_bool == YES)
-			{
-				start_string_pos = first;
-			}
             BEGIN(YANG_IN_DQUOTE);
             goto more;
             /* NOTREACHED */
@@ -821,13 +799,13 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
         trac("!!!!YANG last: %d\n", last);
         last++;
     }
-	if (last - first == 4)
-	{
-		if (strncmp(&my_yytext[first], "path", last - first) == 0)
-		{
-			yang_path_bool = YES;
-		}
-	}
+//	if (last - first == 4)
+//	{
+//		if (strncmp(&my_yytext[first], "path", last - first) == 0)
+//		{
+//			yang_path_bool = YES;
+//		}
+//	}
     //my_yyleng = last;
     trac("!!!!YANG token (line %d)[my_yyleng: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
     return(IDENT);
@@ -855,36 +833,16 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 <YANG_PATH>{
 
 \"{yang_path}\" { /*escaped " - ignore */
+	// TODO recognize multiple yang paths in one string + support strings after sros:if (not only directly after path)
 	trac("!!!!YANG PATH IDENTIFIER\n");
 	my_yymore();
 	trac("!!!!YANG path token (line %d): %d - %s\n", myylineno, first, my_yytext);
 	first = last;
-///	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
-///		trac("!!!!YANG PATH first: %d\n", first);
-///		first++;
-///	}
-///	int lesscount = first;
-///	while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t') {
-///		/*trac("!!!!YANG first: %d\n", last);*/
-///		first++;
-///	}
-///	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
-///		/*trac("!!!!YANG first: %d\n", first);*/
-///		first++;
-///	}
-///	last = first;
-///	while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
-///		/*trac("!!!!YANG last: %d\n", last);*/
-///		last++;
-///	}
-///	if (lesscount > 0)
-///	{
-///		yyless(lesscount-1);
-///		yy_set_bol(0);
-///	}
-	///yyless(last);
-	///yy_set_bol(0);
-   
+	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+		trac("!!!!YANG PATH IDENTIFIER first: %d\n", first);
+		first++;
+	}
+
 	int pos = first;
 	int last_slash_pos = -1;
 	while (pos < my_yyleng) {
@@ -912,31 +870,29 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 
 	if (last_slash_pos >= 0)
 	{
-///		if (pos > 0)
-///		{
-///			my_yytext[first] = ' ';
-///		}
 		first = last_slash_pos+1;
 		last = pos;
-		if (pos > 0)
+		if (first == last)
 		{
-///			my_yytext[pos-1] = ' ';
-			////my_yytext[pos] = '\0';
-			////last++;
-///			my_yyleng = pos;
+			first++;
+			last++;
 		}
 	}
 	else
 	{
 		first = first+1;
 		last = pos;
+		if (first == last)
+		{
+			first++;
+			last++;
+		}
 	}
 	//my_yyleng = last;
 	trac("!!!!YANG path token (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
    
 	BEGIN(YANG);
 	return(IDENT);
-    //goto more;
 }
 
 . ;
@@ -965,16 +921,6 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 }
 
 \"	{	
-	if (yang_path_bool == YES)
-	{
-		yang_path_bool = NO;
-	
-		trac("start_string_pos: %u\n", start_string_pos);
-		trac("first: %u, last: %u\n", first, last);
-	
-		//trac("full leafref path: %s\n", my_yytext[0]);
-		//trac("leafref path: %s\n", my_yytext[start_string_pos]);
-	}
     BEGIN(YANG);
     goto more;
 }
@@ -1869,7 +1815,6 @@ initscanner(char *srcfile)
 	templateparens = -1;	/* function template outer parentheses count */
 	typedefbraces = -1;	/* initial typedef braces count */
 	ident_start = 0;	/* start of previously found identifier */
-	yang_path_bool = NO;  /* yang path (used for leafref) */
 
 	if (my_yytext)
 		*my_yytext = '\0';
