@@ -170,7 +170,7 @@ tcl_identifier [a-zA-Z_$:.][\-a-zA-Z_0-9$:.]*
 tcl_comment "#"[^\n]*\n
 
 yang_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
-yang_path ({yang_identifier}|[/])+
+yang_path ({yang_identifier}|[/])*
 yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type")
 yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"leaf-list"|"key"|"grouping"|"identity"|"notification"|"rpc"|{yang_sros_global_type})
 yang_comment "//"[^\n]*\n
@@ -191,7 +191,7 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 %o 7000
 
 /* exclusive start conditions. not available in AT&T lex -> use flex! */
-%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE YANG YANG_IN_DQUOTE TCL TCL_IN_DQUOTE
+%x IN_PREPROC WAS_ENDIF WAS_IDENTIFIER WAS_ESU IN_DQUOTE IN_SQUOTE COMMENT MIB MIB_IN_DQUOTE YANG YANG_IN_DQUOTE YANG_PATH TCL TCL_IN_DQUOTE
 
 %%
 
@@ -593,7 +593,33 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
 
 <YANG>{
 
-^{ws}+path{ws}+\"{yang_path}\"{ws}*  {
+^{ws}+path{ws}+  {
+    trac("!!!!YANG PATH PREFIX\n");
+	my_yymore();
+	trac("!!!!YANG path prefix token (line %d): %d - %s\n", myylineno, first, my_yytext);
+	first = last;
+	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+		trac("!!!!YANG PATH PREFIX first: %d\n", first);
+		first++;
+	}
+    last = first;
+    while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+        /*trac("!!!!YANG last: %d\n", last);*/
+        last++;
+    }
+	////my_yytext[last] = '\0';
+	////last++;
+
+	BEGIN(YANG_PATH);
+	trac("!!!!YANG path prefix (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
+   
+	/////my_yymore();
+	//first = my_yyleng;
+	return(IDENT);
+	//goto more;
+}
+
+^XXX{ws}+path{ws}+\"{yang_path}\"{ws}*  {
     trac("!!!!YANG PATH IDENTIFIER\n");
     my_yymore();
     trac("!!!!YANG path token (line %d): %d - %s\n", myylineno, first, my_yytext);
@@ -805,6 +831,112 @@ c_function_call {wsnl}*\(([*&[\]=,.()]|{identifier}|{number}|{wsnl})*
     //my_yyleng = last;
     trac("!!!!YANG token (line %d)[my_yyleng: %d]: %d,%d - %s\n", myylineno, my_yyleng, first, last, &my_yytext[first]);
     return(IDENT);
+}
+
+. ;
+
+\n {
+    ++myylineno;
+    first = 0;
+    last = 0;
+    if (symbols > 0) {
+        /* no my_yymore(): \n doesn't need to be in my_yytext */
+        return(NEWLINE);
+    }
+    /* line ended --> flush my_yytext */
+    if (my_yytext)
+        *my_yytext = '\0';
+    my_yyleng = 0;
+    lineno = myylineno;
+}
+
+}
+
+<YANG_PATH>{
+
+\"{yang_path}\" { /*escaped " - ignore */
+	trac("!!!!YANG PATH IDENTIFIER\n");
+	my_yymore();
+	trac("!!!!YANG path token (line %d): %d - %s\n", myylineno, first, my_yytext);
+	first = last;
+///	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+///		trac("!!!!YANG PATH first: %d\n", first);
+///		first++;
+///	}
+///	int lesscount = first;
+///	while (first < my_yyleng && my_yytext[first] != ' ' && my_yytext[first] != '\t') {
+///		/*trac("!!!!YANG first: %d\n", last);*/
+///		first++;
+///	}
+///	while (first < my_yyleng && (my_yytext[first] == ' ' || my_yytext[first] == '\t')) {
+///		/*trac("!!!!YANG first: %d\n", first);*/
+///		first++;
+///	}
+///	last = first;
+///	while (last < my_yyleng && my_yytext[last] != ' ' && my_yytext[last] != '\t') {
+///		/*trac("!!!!YANG last: %d\n", last);*/
+///		last++;
+///	}
+///	if (lesscount > 0)
+///	{
+///		yyless(lesscount-1);
+///		yy_set_bol(0);
+///	}
+	///yyless(last);
+	///yy_set_bol(0);
+   
+	int pos = first;
+	int last_slash_pos = -1;
+	while (pos < my_yyleng) {
+		if (my_yytext[pos] == '/') {
+			last_slash_pos = pos;
+		}
+		pos++;
+	}
+
+	if (last_slash_pos >= 0)
+	{
+		pos = last_slash_pos+1;
+	}
+	else
+	{
+		pos = first+1;
+	}
+
+	while (pos < my_yyleng && my_yytext[pos] != ' ' && my_yytext[pos] != '\t' && my_yytext[pos] != '"') {
+		/*trac("!!!!YANG last: %d\n", last);*/
+		pos++;
+	}
+
+	trac("last_slash_pos: %u pos: %u\n", last_slash_pos, pos);
+
+	if (last_slash_pos >= 0)
+	{
+///		if (pos > 0)
+///		{
+///			my_yytext[first] = ' ';
+///		}
+		first = last_slash_pos+1;
+		last = pos;
+		if (pos > 0)
+		{
+///			my_yytext[pos-1] = ' ';
+			////my_yytext[pos] = '\0';
+			////last++;
+///			my_yyleng = pos;
+		}
+	}
+	else
+	{
+		first = first+1;
+		last = pos;
+	}
+	//my_yyleng = last;
+	trac("!!!!YANG path token (line %d): %d - %d [my_yyleng = %d] - %s\n", myylineno, first, last, my_yyleng, &my_yytext[first]);
+   
+	BEGIN(YANG);
+	return(IDENT);
+    //goto more;
 }
 
 . ;
