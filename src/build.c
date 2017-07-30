@@ -36,8 +36,6 @@
  *	main functions
  */
 
-#include <errno.h>
-
 #include "build.h"
 
 #include "global.h"		/* FIXME: get rid of this! */
@@ -70,7 +68,7 @@ char	*reffile = reffile_buf;	/* cross-reference file path name */
 
 char	*newreffile;		/* new cross-reference file name */
 FILE	*newrefs;		/* new cross-reference */
-sort_t	*postings;		/* new inverted index postings */
+FILE	*postings;		/* new inverted index postings */
 int	symrefs = -1;		/* cross-reference file */
 
 INVCONTROL invcontrol;		/* inverted file control structure */
@@ -350,7 +348,8 @@ cscope: converting to new symbol database file format\n");
 	postfatal("cscope: cannot open file %s\n", reffile);
 	/* NOTREACHED */
     }
-    if (invertedindex == YES && (postings = sort_init()) == NULL) {
+    if (invertedindex == YES && (postings = myfopen(temp1, "wb")) == NULL) {
+	cannotwrite(temp1);
 	cannotindex();
     }
     putheader(newdir);
@@ -449,8 +448,17 @@ cscope: converting to new symbol database file format\n");
 
     /* create the inverted index if requested */
     if (invertedindex == YES) {
-	if (sort_do(postings) < 0) {
-	    fprintf(stderr, "cscope: failed to sort (%s)\n", strerror(errno));
+	char	sortcommand[PATHLEN + 1];
+
+	if (fflush(postings) == EOF) {
+	    cannotwrite(temp1);
+	    /* NOTREACHED */
+	}
+	fstat(fileno(postings), &statstruct);
+	fclose(postings);
+	snprintf(sortcommand, sizeof(sortcommand), "env LC_ALL=C sort -T %s %s", tmpdir, temp1);
+	if ((postings = mypopen(sortcommand, "r")) == NULL) {
+	    fprintf(stderr, "cscope: cannot open pipe to sort command\n");
 	    cannotindex();
 	} else {
 	    if ((totalterms = invmake(newinvname, newinvpost, postings)) > 0) {
@@ -459,8 +467,9 @@ cscope: converting to new symbol database file format\n");
 	    } else {
 		cannotindex();
 	    }
+	    mypclose(postings);
 	}
-	sort_done(postings);
+	unlink(temp1);
 	free(srcoffset);
     }
     /* rewrite the header with the trailer offset and final option list */
