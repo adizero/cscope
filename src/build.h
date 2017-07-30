@@ -56,7 +56,7 @@ extern	char	*invname; 	/* inverted index to the database */
 extern	char	*invpost;	/* inverted index postings */
 extern	char	*newreffile;	/* new cross-reference file name */
 extern	FILE	*newrefs;	/* new cross-reference */
-extern	FILE	*postings;	/* new inverted index postings */
+extern	sort_t	*postings;	/* new inverted index postings */
 extern	int	symrefs;	/* cross-reference file */
 
 extern	INVCONTROL invcontrol;	/* inverted file control structure */

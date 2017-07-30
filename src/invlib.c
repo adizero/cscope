@@ -102,8 +102,37 @@ static	long	totpost;
 static	int	zipf[ZIPFSIZE + 1];
 #endif
 
+static long
+find_fileindex(long num)
+{
+	int low, high, mid;
+    long fileindex = 0;
+
+	/* initialize a binary search */
+	low = -1;
+	high = nsrcoffset;
+
+	/* perform a search for the closest value lower/equal to num */
+	while ((high - low) > 1) {
+		mid = (low + high) / 2;
+		if (num == srcoffset[mid]) {
+			fileindex = mid;
+			break;
+		}
+		else if (num > srcoffset[mid]) {
+			fileindex = mid;
+			low = mid;
+		}
+		else {
+			high = mid;
+		}
+	}
+
+	return fileindex;
+}
+
 long
-invmake(char *invname, char *invpost, FILE *infile)
+invmake(char *invname, char *invpost, sort_t *infile)
 {
 	unsigned char	*s;
 	long	num;
@@ -111,11 +140,13 @@ invmake(char *invname, char *invpost, FILE *infile)
 	long	fileindex = 0;	/* initialze, to avoid warning */
 	unsigned postsize = POSTINC * sizeof(POSTING);
 	unsigned long	*intptr;
-	char	line[TERMMAX];
+	char	*term;
 	long	tlong;
 	PARAM	param;
 	POSTING	posting;
 	char 	temp[BLOCKSIZE];
+	sort_itr_t	*itr;
+	unsigned	len;
 #if STATS
 	int	j;
 	unsigned maxtermlen = 0;
@@ -176,11 +207,16 @@ invmake(char *invname, char *invpost, FILE *infile)
 	lastinblk = sizeof(t_logicalblk);
 
 	/* now loop as long as more to read (till eof)  */
-	while (fgets(line, TERMMAX, infile) != NULL) {
+	itr = sort_itr_init(infile);
+	if (itr == NULL) {
+		return 0;
+	}
+
+	while (sort_itr_next(itr, &term, &len) == 0) {
 #if DEBUG || STATS
 		++totpost;
 #endif
-		s = strchr(line, SEP);
+		s = strchr(term, SEP);
 		if (s != NULL) {
 			*s = '\0';
 		}
@@ -188,15 +224,15 @@ invmake(char *invname, char *invpost, FILE *infile)
 			continue;
 		}
 #if STATS
-		if ((i = strlen(line)) > maxtermlen) {
+		if (len > maxtermlen) {
 			maxtermlen = i;
 		}
 #endif
 #if DEBUG
-		printf("%ld: %s ", totpost, line);
+		printf("%ld: %s ", totpost, term);
 		fflush(stdout);
 #endif
-		if (strcmp(thisterm, line) == 0) {
+		if (strcmp(thisterm, term) == 0) {
 			if (postptr + 10 > POST + postsize / sizeof(POSTING)) {
 				i = postptr - POST;
 				postsize += POSTINC * sizeof(POSTING);
@@ -216,7 +252,7 @@ invmake(char *invname, char *invpost, FILE *infile)
 			if (!invnewterm()) {
 				return(0);
 			}
-			strcpy(thisterm, line);
+			strcpy(thisterm, term);
 			numpost = 1;
 			postptr = POST;
 			fileindex = 0;
@@ -228,15 +264,13 @@ invmake(char *invname, char *invpost, FILE *infile)
 			num = BASE * num + *++s - '!';
 		} while (++i < PRECISION);
 		posting.lineoffset = num;
-		while (++fileindex < nsrcfiles && num > srcoffset[fileindex]) {
-			;
-		}
-		posting.fileindex = --fileindex;
+        fileindex = find_fileindex(num);
+		posting.fileindex = fileindex;
 		posting.type = *++s;
 		++s;
-		if (*s != '\n') {
+		if (*s != '\0') {
 			num = *++s - '!';
-			while (*++s != '\n') {
+			while (*++s != '\0') {
 				num = BASE * num + *s - '!';
 			}
 			posting.fcnoffset = num;
@@ -251,6 +285,7 @@ invmake(char *invname, char *invpost, FILE *infile)
 		fflush(stdout);
 #endif
 	}
+	sort_itr_done(itr);
 	if (!invnewterm()) {
 		return(0);
 	}

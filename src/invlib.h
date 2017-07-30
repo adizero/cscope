@@ -39,6 +39,8 @@
 #include <stdio.h>		/* need definition of FILE* */
 #include <limits.h>
 
+#include "sort.h"
+
 /* inverted index definitions */
 
 /* postings temporary file long number coding into characters */
@@ -112,7 +114,7 @@ void	invdump(INVCONTROL *invcntl, char *term);
 long	invfind(INVCONTROL *invcntl, char *searchterm);
 int	invforward(INVCONTROL *invcntl);
 int	invopen(INVCONTROL *invcntl, char *invname, char *invpost, int status);
-long	invmake(char *invname, char *invpost, FILE *infile);
+long	invmake(char *invname, char *invpost, sort_t *infile);
 long	invterm(INVCONTROL *invcntl, char *term);
 
 #endif /* CSCOPE_INVLIB_H */

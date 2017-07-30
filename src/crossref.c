@@ -387,11 +387,11 @@ freecrossref()
 void
 putposting(char *term, int type)
 {
-	long	i, n;
+	long i, n, len;
 	char	*s;
 	int	digits;		/* digits output */
 	long	offset;		/* function/macro database offset */
-	char	buf[11];		/* number buffer */
+ 	static char buf[1024];	/* output buffer */
 
 	/* get the function or macro name offset */
 	offset = fcnoffset;
@@ -423,32 +423,34 @@ putposting(char *term, int type)
 	}
 	/* output the posting, which should be as small as possible to reduce
 	   the temp file size and sort time */
-	(void) fputs(term, postings);
-	(void) putc(' ', postings);
+ 	len = strlen(term);
+ 	memcpy(buf, term, len);
+ 	buf[len++] = ' ';
 
 	/* the line offset is padded so postings for the same term will sort
 	   in ascending line offset order to order the references as they
 	   appear withing a source file */
 	ltobase(lineoffset);
 	for (i = PRECISION - digits; i > 0; --i) {
-		(void) putc('!', postings);
+		buf[len++] = '!';
 	}
 	do {
-		(void) putc(*s, postings);
+		buf[len++] = *s;
 	} while (*++s != '\0');
 	
 	/* postings are also sorted by type */
-	(void) putc(type, postings);
+	buf[len++] = type;
 	
 	/* function or macro name offset */
 	if (offset > 0) {
-		(void) putc(' ', postings);
+		buf[len++] = ' ';
 		ltobase(offset);
 		do {
-			(void) putc(*s, postings);
+			buf[len++] = *s;
 		} while (*++s != '\0');
 	}
-	if (putc('\n', postings) == EOF) {
+	buf[len++] = '\0';
+	if (sort_insert(postings, buf, len) < 0) {
 		cannotwrite(temp1);
 		/* NOTREACHED */
 	}
