@@ -169,7 +169,7 @@ tcl_comment "#"[^\n]*\n
 
 yang_identifier	[a-zA-Z_$][\-a-zA-Z_0-9$]*
 yang_path ({yang_identifier}|[/])*
-yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type"|"sros:type-translator"|"sros:macro")
+yang_sros_global_type ("sros-snmp:compliance"|"sros-snmp:object-group"|"sros-snmp:notification-group"|"sros-snmp:notification-type"|"sros:type-translator"|"sros:macro"|"sros:field-template")
 yang_global_type ("typedef"|"module"|"submodule"|"extension"|"container"|"leaf"|"list"|"leaf-list"|"choice"|"key"|"grouping"|"identity"|"notification"|"rpc"|{yang_sros_global_type})
 yang_comment "//"[^\n]*\n
 
